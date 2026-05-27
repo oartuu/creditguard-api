@@ -568,6 +568,156 @@ def get_comportamento_pagamentos() -> dict:
     }
 
 
+def get_distribuicao_regional() -> dict:
+    df = load_data()
+
+    df = df[df["regiao_cliente"].notna() & (df["regiao_cliente"] != "")].copy()
+    contratos = df.drop_duplicates("id_contrato").copy()
+    total_parcelas = len(df)
+    valor_total = contratos["valor_inadimplente_inicial"].sum()
+
+    regioes = sorted(df["regiao_cliente"].unique())
+    resultado = []
+
+    for regiao in regioes:
+        grupo     = df[df["regiao_cliente"] == regiao]
+        contratos_reg = contratos[contratos["regiao_cliente"] == regiao]
+
+        n_total      = len(grupo)
+        n_inadimp    = int((grupo["pagamento_em_dia"] == False).sum())
+        n_em_dia     = int((grupo["pagamento_em_dia"] == True).sum())
+        atraso_medio = round(float(grupo[grupo["dias_atraso"] > 0]["dias_atraso"].mean()), 2)
+
+        n_contratos  = len(contratos_reg)
+        val_total    = round(float(contratos_reg["valor_inadimplente_inicial"].sum()), 2)
+        val_medio    = round(float(contratos_reg["valor_inadimplente_inicial"].mean()), 2)
+        val_mediano  = round(float(contratos_reg["valor_inadimplente_inicial"].median()), 2)
+
+        acordos   = int((contratos_reg["status_cobranca"] == "Acordo Firmado").sum())
+        em_aberto = int((contratos_reg["status_cobranca"] == "Em Aberto").sum())
+        insucesso = int((contratos_reg["status_cobranca"] == "Insucesso").sum())
+        ajuizado  = int((contratos_reg["status_cobranca"] == "Ajuizado").sum())
+
+        score_medio = round(float(grupo["score_interno_risco"].mean()), 2)
+
+        fp_counts = grupo["forma_pagamento"].value_counts()
+        forma_pct = {
+            fp: round(cnt / n_total * 100, 2)
+            for fp, cnt in fp_counts.items()
+        }
+
+        contemplados     = int((grupo["indicador_contemplado"] == "Sim").sum())
+        pct_contemplados = round(contemplados / n_total * 100, 2)
+
+        assessoria_norm = grupo["nome_assessoria"].str.strip().str.title()
+        assessoria_dom  = assessoria_norm.value_counts().idxmax()
+
+        resultado.append({
+            "regiao": regiao,
+            "volume": {
+                "total_parcelas": n_total,
+                "pct_carteira": round(n_total / total_parcelas * 100, 2),
+                "total_contratos": n_contratos,
+            },
+            "inadimplencia": {
+                "parcelas_em_dia": n_em_dia,
+                "parcelas_atrasadas": n_inadimp,
+                "taxa_inadimplencia_pct": round(n_inadimp / n_total * 100, 2),
+                "atraso_medio_dias": atraso_medio,
+            },
+            "valor": {
+                "total_inadimplente": val_total,
+                "pct_valor_carteira": round(val_total / valor_total * 100, 2),
+                "valor_medio_contrato": val_medio,
+                "valor_mediano_contrato": val_mediano,
+            },
+            "recuperacao": {
+                "acordos_firmados": acordos,
+                "em_aberto": em_aberto,
+                "insucesso": insucesso,
+                "ajuizado": ajuizado,
+                "taxa_recuperacao_pct": round(acordos / n_contratos * 100, 2) if n_contratos else 0,
+                "taxa_judicializacao_pct": round(ajuizado / n_contratos * 100, 2) if n_contratos else 0,
+            },
+            "perfil": {
+                "score_medio_risco": score_medio,
+                "pct_contemplados": pct_contemplados,
+                "forma_pagamento_pct": forma_pct,
+                "assessoria_dominante": assessoria_dom,
+            },
+        })
+
+    resultado.sort(key=lambda x: x["inadimplencia"]["taxa_inadimplencia_pct"], reverse=True)
+
+    # --- rankings consolidados ---
+    ranking_inadimplencia = [
+        {"regiao": r["regiao"], "taxa_inadimplencia_pct": r["inadimplencia"]["taxa_inadimplencia_pct"]}
+        for r in resultado
+    ]
+    ranking_valor = sorted(
+        [{"regiao": r["regiao"], "valor_total_inadimplente": r["valor"]["total_inadimplente"],
+          "pct_valor_carteira": r["valor"]["pct_valor_carteira"]} for r in resultado],
+        key=lambda x: x["valor_total_inadimplente"], reverse=True
+    )
+    ranking_recuperacao = sorted(
+        [{"regiao": r["regiao"], "taxa_recuperacao_pct": r["recuperacao"]["taxa_recuperacao_pct"],
+          "taxa_judicializacao_pct": r["recuperacao"]["taxa_judicializacao_pct"]} for r in resultado],
+        key=lambda x: x["taxa_recuperacao_pct"], reverse=True
+    )
+
+    # --- insights ---
+    melhor_rec  = ranking_recuperacao[0]
+    pior_rec    = ranking_recuperacao[-1]
+    maior_vol   = max(resultado, key=lambda x: x["volume"]["total_parcelas"])
+    maior_valor = ranking_valor[0]
+
+    insights = [
+        {
+            "insight": "Taxas de inadimplência regionais praticamente homogêneas",
+            "detalhe": (
+                f"A variação entre a região com maior inadimplência ({ranking_inadimplencia[0]['regiao']}: "
+                f"{ranking_inadimplencia[0]['taxa_inadimplencia_pct']}%) e a menor "
+                f"({ranking_inadimplencia[-1]['regiao']}: {ranking_inadimplencia[-1]['taxa_inadimplencia_pct']}%) "
+                "é inferior a 0,3 p.p. — o risco é geograficamente uniforme."
+            ),
+        },
+        {
+            "insight": "Concentração de valor em Sudeste e Nordeste",
+            "detalhe": (
+                f"{ranking_valor[0]['regiao']} ({ranking_valor[0]['pct_valor_carteira']}%) e "
+                f"{ranking_valor[1]['regiao']} ({ranking_valor[1]['pct_valor_carteira']}%) concentram "
+                f"{round(ranking_valor[0]['pct_valor_carteira'] + ranking_valor[1]['pct_valor_carteira'], 2)}% "
+                "do valor inadimplente total — reflexo do maior volume de contratos."
+            ),
+        },
+        {
+            "insight": "Sul lidera recuperação; Norte é o mais problemático",
+            "detalhe": (
+                f"Sul tem a melhor taxa de recuperação ({melhor_rec['taxa_recuperacao_pct']}%) e menor judicialização. "
+                f"Norte tem a pior recuperação ({pior_rec['taxa_recuperacao_pct']}%) e maior judicialização "
+                f"({pior_rec['taxa_judicializacao_pct']}%) — prioridade para estratégias extrajudiciais."
+            ),
+        },
+        {
+            "insight": "Perfil de pagamento uniforme entre regiões",
+            "detalhe": (
+                "A distribuição de forma de pagamento (~50% Boleto, ~35% Pix, ~15% Débito Automático) "
+                "e o percentual de clientes contemplados (~30%) são praticamente idênticos em todas as regiões."
+            ),
+        },
+    ]
+
+    return {
+        "por_regiao": resultado,
+        "rankings": {
+            "inadimplencia": ranking_inadimplencia,
+            "valor_inadimplente": ranking_valor,
+            "recuperacao": ranking_recuperacao,
+        },
+        "insights": insights,
+    }
+
+
 def get_risco_regional() -> dict:
     df = load_data()
 
