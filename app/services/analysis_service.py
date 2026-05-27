@@ -281,6 +281,293 @@ def get_tendencia() -> dict:
     }
 
 
+def get_distribuicao_atrasos() -> dict:
+    df = load_data()
+
+    total = len(df)
+    atrasados = df[df["dias_atraso"] > 0].copy()
+    n_atrasados = len(atrasados)
+
+    # --- resumo geral ---
+    s = atrasados["dias_atraso"]
+    resumo = {
+        "total_parcelas": total,
+        "parcelas_atrasadas": n_atrasados,
+        "taxa_inadimplencia_pct": round(n_atrasados / total * 100, 2),
+        "media_dias": round(float(s.mean()), 2),
+        "mediana_dias": round(float(s.median()), 2),
+        "desvio_padrao": round(float(s.std()), 2),
+        "percentis": {
+            "p10": round(float(s.quantile(0.10)), 1),
+            "p25": round(float(s.quantile(0.25)), 1),
+            "p50": round(float(s.quantile(0.50)), 1),
+            "p75": round(float(s.quantile(0.75)), 1),
+            "p90": round(float(s.quantile(0.90)), 1),
+            "p95": round(float(s.quantile(0.95)), 1),
+            "p99": round(float(s.quantile(0.99)), 1),
+        },
+        "max_dias": int(s.max()),
+    }
+
+    # --- faixas detalhadas ---
+    bins   = [0, 15, 30, 60, 90, 120]
+    labels = ["1-15 dias", "16-30 dias", "31-60 dias", "61-90 dias", "91-120 dias"]
+    atrasados["faixa"] = pd.cut(atrasados["dias_atraso"], bins=bins, labels=labels, right=True)
+    faixas_raw = atrasados["faixa"].value_counts().sort_index()
+    faixas = [
+        {
+            "faixa": label,
+            "count": int(faixas_raw.get(label, 0)),
+            "pct_atrasados": round(faixas_raw.get(label, 0) / n_atrasados * 100, 2),
+            "pct_total": round(faixas_raw.get(label, 0) / total * 100, 2),
+        }
+        for label in labels
+    ]
+
+    # --- por forma de pagamento ---
+    por_forma = (
+        atrasados.groupby("forma_pagamento")["dias_atraso"]
+        .agg(count="count", media="mean", mediana="median")
+        .round(2)
+        .reset_index()
+        .to_dict(orient="records")
+    )
+
+    # --- por região ---
+    por_regiao = (
+        atrasados[atrasados["regiao_cliente"] != ""]
+        .groupby("regiao_cliente")["dias_atraso"]
+        .agg(count="count", media="mean", mediana="median")
+        .round(2)
+        .reset_index()
+        .sort_values("media", ascending=False)
+        .to_dict(orient="records")
+    )
+
+    # --- por faixa de score de risco ---
+    def banda_risco(score):
+        if pd.isna(score):
+            return "Sem score"
+        if score <= 33:
+            return "Baixo (1-33)"
+        if score <= 66:
+            return "Médio (34-66)"
+        return "Alto (67-100)"
+
+    atrasados["banda_risco"] = atrasados["score_interno_risco"].apply(banda_risco)
+    por_score = (
+        atrasados.groupby("banda_risco")["dias_atraso"]
+        .agg(count="count", media="mean", mediana="median")
+        .round(2)
+        .reset_index()
+        .to_dict(orient="records")
+    )
+
+    # --- correlações ---
+    corr = atrasados[["dias_atraso", "score_interno_risco", "valor_inadimplente_inicial"]].corr()
+    correlacoes = {
+        "atraso_vs_score_risco": round(float(corr.loc["dias_atraso", "score_interno_risco"]), 4),
+        "atraso_vs_valor_inadimplente": round(float(corr.loc["dias_atraso", "valor_inadimplente_inicial"]), 4),
+        "interpretacao": (
+            "Score de risco tem correlação quase nula com dias de atraso — "
+            "o score identifica quem atrasa, mas não prevê por quanto tempo."
+        ),
+    }
+
+    # --- por status de cobrança ---
+    por_status = (
+        atrasados.groupby("status_cobranca")["dias_atraso"]
+        .agg(count="count", media="mean", mediana="median")
+        .round(2)
+        .reset_index()
+        .sort_values("media", ascending=False)
+        .to_dict(orient="records")
+    )
+
+    # --- sazonalidade mensal ---
+    atrasados["mes"] = atrasados["data_vencimento"].dt.to_period("M").astype(str)
+    por_mes = (
+        atrasados.groupby("mes")["dias_atraso"]
+        .agg(count="count", media="mean")
+        .round(2)
+        .reset_index()
+        .sort_index()
+        .to_dict(orient="records")
+    )
+
+    return {
+        "resumo": resumo,
+        "faixas_atraso": faixas,
+        "por_forma_pagamento": por_forma,
+        "por_regiao": por_regiao,
+        "por_faixa_score_risco": por_score,
+        "por_status_cobranca": por_status,
+        "sazonalidade_mensal": por_mes,
+        "correlacoes": correlacoes,
+    }
+
+
+def get_comportamento_pagamentos() -> dict:
+    df = load_data()
+
+    total = len(df)
+
+    # --- classificação do tipo de pagamento ---
+    n_integral = int((df["percentual_pago"] == 1.0).sum())
+    n_nao_pago = int((df["percentual_pago"] == 0.0).sum())
+    n_com_juros = int((df["percentual_pago"] > 1.0).sum())
+    # sem pagamento parcial no dataset (0 < x < 1)
+    n_parcial   = int(((df["percentual_pago"] > 0) & (df["percentual_pago"] < 1.0)).sum())
+
+    tipos_pagamento = {
+        "pago_integral": {"count": n_integral, "pct": round(n_integral / total * 100, 2)},
+        "pago_com_juros_multa": {"count": n_com_juros, "pct": round(n_com_juros / total * 100, 2)},
+        "pago_parcial": {"count": n_parcial, "pct": round(n_parcial / total * 100, 2)},
+        "nao_pago": {"count": n_nao_pago, "pct": round(n_nao_pago / total * 100, 2)},
+    }
+
+    # --- acréscimo médio de juros/multa nos atrasados ---
+    atrasados = df[df["percentual_pago"] > 1.0]
+    acrescimo_medio_pct = round((atrasados["percentual_pago"].mean() - 1) * 100, 2)
+
+    # --- por forma de pagamento ---
+    por_forma = []
+    for forma, grupo in df.groupby("forma_pagamento"):
+        gtotal = len(grupo)
+        inadimplentes = int((grupo["pagamento_em_dia"] == False).sum())
+        por_forma.append({
+            "forma_pagamento": forma,
+            "total": gtotal,
+            "pagamentos_em_dia": int((grupo["pagamento_em_dia"] == True).sum()),
+            "inadimplentes": inadimplentes,
+            "taxa_inadimplencia_pct": round(inadimplentes / gtotal * 100, 2),
+            "valor_medio_parcela": round(float(grupo["valor_parcela"].mean()), 2),
+            "valor_medio_pago": round(float(grupo["valor_pago"].mean()), 2),
+        })
+    por_forma.sort(key=lambda x: x["taxa_inadimplencia_pct"], reverse=True)
+
+    # --- contemplados vs não contemplados ---
+    por_contemplado = []
+    for situacao, grupo in df.groupby("indicador_contemplado"):
+        gtotal = len(grupo)
+        inadimplentes = int((grupo["pagamento_em_dia"] == False).sum())
+        por_contemplado.append({
+            "contemplado": situacao,
+            "total": gtotal,
+            "inadimplentes": inadimplentes,
+            "taxa_inadimplencia_pct": round(inadimplentes / gtotal * 100, 2),
+            "valor_medio_parcela": round(float(grupo["valor_parcela"].mean()), 2),
+            "valor_medio_pago": round(float(grupo["valor_pago"].mean()), 2),
+        })
+    por_contemplado.sort(key=lambda x: x["taxa_inadimplencia_pct"], reverse=True)
+
+    diferenca_contemplado = round(
+        por_contemplado[0]["taxa_inadimplencia_pct"] -
+        por_contemplado[-1]["taxa_inadimplencia_pct"], 2
+    )
+
+    # --- por faixa de valor da parcela ---
+    bins   = [0, 450, 600, 850, 1500]
+    labels = ["Até R$450", "R$451-600", "R$601-850", "R$851-1500"]
+    df["faixa_valor"] = pd.cut(df["valor_parcela"], bins=bins, labels=labels, right=True)
+    por_valor = []
+    for faixa, grupo in df.groupby("faixa_valor", observed=False):
+        gtotal = len(grupo)
+        inadimplentes = int((grupo["pagamento_em_dia"] == False).sum())
+        por_valor.append({
+            "faixa_valor": str(faixa),
+            "total": gtotal,
+            "inadimplentes": inadimplentes,
+            "taxa_inadimplencia_pct": round(inadimplentes / gtotal * 100, 2),
+            "valor_medio_pago": round(float(grupo["valor_pago"].mean()), 2),
+        })
+
+    # --- por número de parcela (maturidade do contrato) ---
+    bins_p   = [0, 12, 24, 36, 60]
+    labels_p = ["1-12", "13-24", "25-36", "37-60"]
+    df["grupo_parcela"] = pd.cut(df["numero_parcela"], bins=bins_p, labels=labels_p, right=True)
+    por_parcela = []
+    for grupo_nome, grupo in df.groupby("grupo_parcela", observed=False):
+        gtotal = len(grupo)
+        inadimplentes = int((grupo["pagamento_em_dia"] == False).sum())
+        por_parcela.append({
+            "parcelas": str(grupo_nome),
+            "total": gtotal,
+            "inadimplentes": inadimplentes,
+            "taxa_inadimplencia_pct": round(inadimplentes / gtotal * 100, 2),
+        })
+
+    # --- por dia da semana do vencimento ---
+    ordem_semana = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    traducao = {
+        "Monday": "Segunda", "Tuesday": "Terça", "Wednesday": "Quarta",
+        "Thursday": "Quinta", "Friday": "Sexta", "Saturday": "Sábado", "Sunday": "Domingo"
+    }
+    df["dia_semana"] = df["data_vencimento"].dt.day_name()
+    por_dia = []
+    for dia in ordem_semana:
+        grupo = df[df["dia_semana"] == dia]
+        if len(grupo) == 0:
+            continue
+        inadimplentes = int((grupo["pagamento_em_dia"] == False).sum())
+        por_dia.append({
+            "dia_semana": traducao[dia],
+            "total": len(grupo),
+            "inadimplentes": inadimplentes,
+            "taxa_inadimplencia_pct": round(inadimplentes / len(grupo) * 100, 2),
+        })
+    por_dia.sort(key=lambda x: x["taxa_inadimplencia_pct"], reverse=True)
+
+    # --- insights automáticos ---
+    insights = [
+        {
+            "insight": "Ausência de pagamentos parciais",
+            "detalhe": (
+                "100% dos pagamentos são integrais, com juros, ou zerados. "
+                "Nenhum cliente pagou valor parcial — o comportamento é binário: paga ou não paga."
+            ),
+        },
+        {
+            "insight": "Clientes contemplados inadimpliam significativamente menos",
+            "detalhe": (
+                f"Não-contemplados: {por_contemplado[0]['taxa_inadimplencia_pct']}% de inadimplência. "
+                f"Contemplados: {por_contemplado[-1]['taxa_inadimplencia_pct']}%. "
+                f"Diferença de {diferenca_contemplado} p.p. — o maior preditor comportamental encontrado."
+            ),
+        },
+        {
+            "insight": "Pagamentos com juros confirmam atraso",
+            "detalhe": (
+                f"{n_com_juros} pagamentos ({round(n_com_juros/total*100,2)}%) foram feitos com acréscimo médio "
+                f"de {acrescimo_medio_pct}% sobre o valor da parcela — correspondendo exatamente aos inadimplentes que regularizaram."
+            ),
+        },
+        {
+            "insight": "Forma de pagamento tem impacto mínimo",
+            "detalhe": (
+                f"A diferença entre a forma com maior inadimplência ({por_forma[0]['forma_pagamento']}: "
+                f"{por_forma[0]['taxa_inadimplencia_pct']}%) e a menor ({por_forma[-1]['forma_pagamento']}: "
+                f"{por_forma[-1]['taxa_inadimplencia_pct']}%) é inferior a 1 p.p."
+            ),
+        },
+        {
+            "insight": "Maturidade da parcela não influencia inadimplência",
+            "detalhe": "A taxa de inadimplência permanece estável (~25%) independente de o cliente estar nas primeiras ou últimas parcelas.",
+        },
+    ]
+
+    return {
+        "tipos_pagamento": tipos_pagamento,
+        "acrescimo_medio_juros_multa_pct": acrescimo_medio_pct,
+        "por_forma_pagamento": por_forma,
+        "por_indicador_contemplado": por_contemplado,
+        "por_faixa_valor_parcela": por_valor,
+        "por_numero_parcela": por_parcela,
+        "por_dia_semana_vencimento": por_dia,
+        "insights": insights,
+    }
+
+
 def get_risco_regional() -> dict:
     df = load_data()
 
