@@ -1,5 +1,108 @@
 import pandas as pd
+import numpy as np
 from app.services.data_service import load_data
+
+
+def get_estatisticas() -> dict:
+    df = load_data()
+
+    # --- shape ---
+    shape = {"linhas": len(df), "colunas": len(df.columns)}
+
+    # --- nulos ---
+    nulos = df.isnull().sum()
+    nulos_pct = (nulos / len(df) * 100).round(2)
+    missing = {
+        col: {"total": int(nulos[col]), "pct": float(nulos_pct[col])}
+        for col in df.columns
+        if nulos[col] > 0
+    }
+
+    # --- numéricas ---
+    num_cols = {
+        "dias_atraso": "Dias de atraso no pagamento (negativo = adiantado)",
+        "score_interno_risco": "Score de risco do cliente (1-100)",
+        "valor_inadimplente_inicial": "Valor da dívida enviado à assessoria (R$)",
+        "valor_parcela": "Valor nominal da parcela (R$)",
+        "valor_pago": "Valor efetivamente pago (R$)",
+        "dias_em_atraso_inicial": "Dias em atraso no momento do envio à assessoria (-999 = sem info)",
+        "percentual_pago": "Percentual do valor pago sobre o valor da parcela",
+    }
+
+    numericas = {}
+    for col, descricao in num_cols.items():
+        s = df[col].dropna()
+        # exclui sentinelas (-999) do dias_em_atraso_inicial para estatísticas
+        if col == "dias_em_atraso_inicial":
+            s = s[s >= 0]
+        numericas[col] = {
+            "descricao": descricao,
+            "count": int(s.count()),
+            "mean": round(float(s.mean()), 2),
+            "std": round(float(s.std()), 2),
+            "min": round(float(s.min()), 2),
+            "p25": round(float(s.quantile(0.25)), 2),
+            "mediana": round(float(s.median()), 2),
+            "p75": round(float(s.quantile(0.75)), 2),
+            "max": round(float(s.max()), 2),
+        }
+
+    # --- categóricas ---
+    # normaliza assessorias (havia duplicatas por capitalização)
+    df["nome_assessoria_norm"] = df["nome_assessoria"].str.strip().str.title()
+
+    cat_cols = {
+        "forma_pagamento": "Meio de pagamento utilizado",
+        "indicador_contemplado": "Se o cliente foi contemplado",
+        "status_cobranca": "Resultado do processo de cobrança",
+        "regiao_cliente": "Região geográfica do cliente",
+        "nome_assessoria_norm": "Assessoria responsável pela cobrança",
+    }
+
+    categoricas = {}
+    for col, descricao in cat_cols.items():
+        vc = df[col].value_counts()
+        pct = (vc / len(df) * 100).round(2)
+        categoricas[col] = {
+            "descricao": descricao,
+            "distribuicao": [
+                {"valor": k, "count": int(v), "pct": float(pct[k])}
+                for k, v in vc.items()
+            ],
+        }
+
+    # --- alertas de qualidade ---
+    alertas = []
+    if missing:
+        for col, info in missing.items():
+            alertas.append(f"{col}: {info['total']} nulos ({info['pct']}%)")
+
+    sent = int((df["dias_em_atraso_inicial"] == -999).sum())
+    if sent:
+        alertas.append(
+            f"dias_em_atraso_inicial: {sent} registros com valor sentinela -999 (sem informação)"
+        )
+
+    dup_assessoria = df["nome_assessoria"].str.strip().str.lower().value_counts()
+    dup_nomes = [
+        nome for nome, cnt in
+        df.groupby(df["nome_assessoria"].str.strip().str.lower())["nome_assessoria"]
+        .apply(lambda x: x.str.strip().nunique())
+        .items()
+        if cnt > 1
+    ]
+    if dup_nomes:
+        alertas.append(
+            f"nome_assessoria: variações de capitalização detectadas em {dup_nomes} — normalizadas no campo 'nome_assessoria_norm'"
+        )
+
+    return {
+        "shape": shape,
+        "valores_ausentes": missing,
+        "estatisticas_numericas": numericas,
+        "distribuicoes_categoricas": categoricas,
+        "alertas_qualidade": alertas,
+    }
 
 
 def get_kpis() -> dict:

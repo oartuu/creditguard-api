@@ -5,6 +5,7 @@ from app.services.analysis_service import (
     get_recuperacao,
     get_tendencia,
     get_risco_regional,
+    get_estatisticas,
 )
 
 analysis_bp = Blueprint("analysis", __name__, url_prefix="/analysis")
@@ -33,3 +34,8 @@ def tendencia():
 @analysis_bp.route("/risco-regional")
 def risco_regional():
     return jsonify(get_risco_regional())
+
+
+@analysis_bp.route("/estatisticas")
+def estatisticas():
+    return jsonify(get_estatisticas())
