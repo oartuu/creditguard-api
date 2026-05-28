@@ -182,6 +182,37 @@ export interface TaxaRecStatus {
   cor: string;
 }
 
+export interface AtrasoMedioGeral {
+  media_dias: number;
+  mediana_dias: number;
+  desvio_padrao: number;
+  max_dias: number;
+  total_atrasados: number;
+  percentis: { p25: number; p50: number; p75: number; p90: number; p95: number };
+}
+
+export interface AtrasoFaixa {
+  faixa: string;
+  count: number;
+  pct: number;
+}
+
+export interface AtrasoMedioMensal {
+  mes: string;
+  total: number;
+  media_dias: number;
+}
+
+export interface AtrasoMedio {
+  indicador_geral: AtrasoMedioGeral;
+  faixas_atraso: AtrasoFaixa[];
+  evolucao_mensal: AtrasoMedioMensal[];
+  por_regiao: Array<{ regiao: string; total: number; media_dias: number; mediana_dias: number }>;
+  por_faixa_risco: Array<{ faixa: string; total: number; media_dias: number }>;
+  por_forma_pagamento: Array<{ forma: string; total: number; media_dias: number }>;
+  insights: Insight[];
+}
+
 export interface TaxaRecuperacao {
   indicador_geral: TaxaRecuperacaoGeral;
   evolucao_mensal: TaxaRecMensal[];

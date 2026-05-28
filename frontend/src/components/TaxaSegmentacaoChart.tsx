@@ -15,6 +15,8 @@ interface Props {
   data: SegmentoItem[];
   referencia?: number;
   higherIsBetter?: boolean;
+  suffix?: string;
+  metricLabel?: string;
 }
 
 function getColor(taxa: number, referencia: number, higherIsBetter: boolean): string {
@@ -28,9 +30,20 @@ function getColor(taxa: number, referencia: number, higherIsBetter: boolean): st
   return "#f97316";
 }
 
-export default function TaxaSegmentacaoChart({ title, subtitle, data, referencia = 0, higherIsBetter = false }: Props) {
+export default function TaxaSegmentacaoChart({
+  title,
+  subtitle,
+  data,
+  referencia = 0,
+  higherIsBetter = false,
+  suffix = "%",
+  metricLabel = "Valor",
+}: Props) {
   const ct = useChartTheme();
   const ref = referencia || (data.reduce((s, d) => s + d.taxa_pct, 0) / (data.length || 1));
+
+  const maxVal = data.length ? Math.max(...data.map(d => d.taxa_pct)) : 10;
+  const domainMax = suffix === "%" ? Math.ceil(maxVal / 5) * 5 + 5 : Math.ceil(maxVal / 10) * 10 + 10;
 
   return (
     <ChartCard title={title} subtitle={subtitle}>
@@ -43,8 +56,8 @@ export default function TaxaSegmentacaoChart({ title, subtitle, data, referencia
           <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} horizontal={false} />
           <XAxis
             type="number"
-            domain={[0, Math.ceil(Math.max(...data.map(d => d.taxa_pct)) / 5) * 5 + 5]}
-            tickFormatter={(v: number) => `${v}%`}
+            domain={[0, domainMax]}
+            tickFormatter={(v: number) => `${v}${suffix}`}
             tick={{ fill: ct.tick, fontSize: 10 }}
           />
           <YAxis
@@ -63,8 +76,8 @@ export default function TaxaSegmentacaoChart({ title, subtitle, data, referencia
             formatter={(v: number, _: string, props: { payload?: SegmentoItem }) => {
               const p = props.payload;
               return [
-                `${v}%  (${p?.atrasados?.toLocaleString("pt-BR")} / ${p?.total?.toLocaleString("pt-BR")})`,
-                "Inadimplência",
+                `${v}${suffix}  (${p?.atrasados?.toLocaleString("pt-BR")} / ${p?.total?.toLocaleString("pt-BR")})`,
+                metricLabel,
               ];
             }}
           />

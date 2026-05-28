@@ -913,6 +913,151 @@ def get_status_cobrancas() -> dict:
     }
 
 
+def get_atraso_medio() -> dict:
+    df = load_data()
+
+    atrasados = df[df["dias_atraso"] > 0].copy()
+    total = len(atrasados)
+
+    media_geral  = round(float(atrasados["dias_atraso"].mean()), 1)
+    mediana      = round(float(atrasados["dias_atraso"].median()), 1)
+    desvio       = round(float(atrasados["dias_atraso"].std()), 1)
+    maximo       = int(atrasados["dias_atraso"].max())
+
+    percentis = {
+        "p25": round(float(atrasados["dias_atraso"].quantile(0.25)), 1),
+        "p50": round(float(atrasados["dias_atraso"].quantile(0.50)), 1),
+        "p75": round(float(atrasados["dias_atraso"].quantile(0.75)), 1),
+        "p90": round(float(atrasados["dias_atraso"].quantile(0.90)), 1),
+        "p95": round(float(atrasados["dias_atraso"].quantile(0.95)), 1),
+    }
+
+    # --- faixas de atraso ---
+    bins   = [0, 15, 30, 60, 90, 120, float("inf")]
+    labels = ["1-15 dias", "16-30 dias", "31-60 dias", "61-90 dias", "91-120 dias", "120+ dias"]
+    atrasados["faixa"] = pd.cut(atrasados["dias_atraso"], bins=bins, labels=labels, right=True)
+    faixas = []
+    for label in labels:
+        count = int((atrasados["faixa"] == label).sum())
+        faixas.append({
+            "faixa": label,
+            "count": count,
+            "pct": round(count / total * 100, 2),
+        })
+
+    # --- evolução mensal ---
+    df_v = atrasados.dropna(subset=["data_vencimento"]).copy()
+    df_v["mes"] = df_v["data_vencimento"].dt.to_period("M").astype(str)
+    evo = (
+        df_v.groupby("mes")
+        .agg(total=("dias_atraso", "count"), media_dias=("dias_atraso", "mean"))
+        .reset_index()
+    )
+    evo["media_dias"] = evo["media_dias"].round(1)
+    evo_list = evo.sort_values("mes").to_dict(orient="records")
+
+    # --- por região ---
+    df_reg = atrasados[atrasados["regiao_cliente"].notna() & (atrasados["regiao_cliente"] != "")]
+    por_regiao = (
+        df_reg.groupby("regiao_cliente")
+        .agg(
+            total=("dias_atraso", "count"),
+            media_dias=("dias_atraso", "mean"),
+            mediana_dias=("dias_atraso", "median"),
+        )
+        .reset_index()
+        .rename(columns={"regiao_cliente": "regiao"})
+    )
+    por_regiao[["media_dias", "mediana_dias"]] = por_regiao[["media_dias", "mediana_dias"]].round(1)
+    por_regiao_list = por_regiao.sort_values("media_dias", ascending=False).to_dict(orient="records")
+
+    # --- por faixa de score de risco ---
+    def banda_risco(score):
+        if pd.isna(score): return "Sem score"
+        if score <= 33:    return "Baixo (1-33)"
+        if score <= 66:    return "Médio (34-66)"
+        return "Alto (67-100)"
+
+    atrasados["banda"] = atrasados["score_interno_risco"].apply(banda_risco)
+    ordem_risco = ["Alto (67-100)", "Médio (34-66)", "Baixo (1-33)", "Sem score"]
+    por_risco = (
+        atrasados.groupby("banda")
+        .agg(total=("dias_atraso", "count"), media_dias=("dias_atraso", "mean"))
+        .reset_index()
+        .rename(columns={"banda": "faixa"})
+    )
+    por_risco["media_dias"] = por_risco["media_dias"].round(1)
+    por_risco["_ord"] = por_risco["faixa"].map({v: i for i, v in enumerate(ordem_risco)})
+    por_risco_list = por_risco.sort_values("_ord").drop(columns="_ord").to_dict(orient="records")
+
+    # --- por forma de pagamento ---
+    por_forma = (
+        atrasados.groupby("forma_pagamento")
+        .agg(total=("dias_atraso", "count"), media_dias=("dias_atraso", "mean"))
+        .reset_index()
+        .rename(columns={"forma_pagamento": "forma"})
+    )
+    por_forma["media_dias"] = por_forma["media_dias"].round(1)
+    por_forma_list = por_forma.sort_values("media_dias", ascending=False).to_dict(orient="records")
+
+    # --- insights ---
+    maior_faixa = max(faixas, key=lambda f: f["count"])
+    pior_reg    = por_regiao_list[0]
+    melhor_reg  = por_regiao_list[-1]
+
+    insights = [
+        {
+            "insight": f"Atraso médio geral de {media_geral} dias entre parcelas em atraso",
+            "detalhe": (
+                f"Mediana de {mediana} dias (desvio-padrão: {desvio} dias). "
+                f"50% dos casos se resolvem em até {percentis['p50']} dias "
+                f"e 90% em até {percentis['p90']} dias — a cauda longa (máx. {maximo} dias) "
+                "puxa a média acima da mediana."
+            ),
+        },
+        {
+            "insight": f"A faixa '{maior_faixa['faixa']}' concentra {maior_faixa['pct']}% dos atrasos",
+            "detalhe": (
+                f"{maior_faixa['count']:,} parcelas ficam nessa faixa. "
+                "Acionar cobrança dentro dos primeiros 15 dias captura a maior parte dos atrasos "
+                "ainda em estágio recuperável."
+            ),
+        },
+        {
+            "insight": f"{pior_reg['regiao']} tem o maior atraso médio ({pior_reg['media_dias']} dias)",
+            "detalhe": (
+                f"Versus {melhor_reg['regiao']} com {melhor_reg['media_dias']} dias. "
+                f"Diferença de {round(pior_reg['media_dias'] - melhor_reg['media_dias'], 1)} dias — "
+                "pode refletir diferenças no perfil de clientes ou na eficácia das assessorias regionais."
+            ),
+        },
+        {
+            "insight": f"p95 = {percentis['p95']} dias indica casos cronicamente inadimplentes",
+            "detalhe": (
+                "Os 5% mais graves ultrapassam esse limite, representando casos de difícil recuperação extrajudicial. "
+                "São candidatos prioritários à judicialização ou renegociação especial."
+            ),
+        },
+    ]
+
+    return {
+        "indicador_geral": {
+            "media_dias": media_geral,
+            "mediana_dias": mediana,
+            "desvio_padrao": desvio,
+            "max_dias": maximo,
+            "total_atrasados": total,
+            "percentis": percentis,
+        },
+        "faixas_atraso": faixas,
+        "evolucao_mensal": evo_list,
+        "por_regiao": por_regiao_list,
+        "por_faixa_risco": por_risco_list,
+        "por_forma_pagamento": por_forma_list,
+        "insights": insights,
+    }
+
+
 def get_taxa_recuperacao() -> dict:
     df = load_data()
 

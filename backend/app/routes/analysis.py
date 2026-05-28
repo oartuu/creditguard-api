@@ -12,6 +12,7 @@ from app.services.analysis_service import (
     get_status_cobrancas,
     get_taxa_inadimplencia,
     get_taxa_recuperacao,
+    get_atraso_medio,
 )
 
 analysis_bp = Blueprint("analysis", __name__, url_prefix="/analysis")
@@ -75,3 +76,8 @@ def taxa_inadimplencia():
 @analysis_bp.route("/taxa-recuperacao")
 def taxa_recuperacao():
     return jsonify(get_taxa_recuperacao())
+
+
+@analysis_bp.route("/atraso-medio")
+def atraso_medio():
+    return jsonify(get_atraso_medio())

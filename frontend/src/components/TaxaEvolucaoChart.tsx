@@ -7,7 +7,7 @@ import { useChartTheme } from "../contexts/ThemeContext";
 
 interface DataPoint {
   mes: string;
-  taxa_pct: number;
+  [key: string]: string | number;
 }
 
 interface Props {
@@ -15,6 +15,8 @@ interface Props {
   color?: string;
   title?: string;
   label?: string;
+  dataKey?: string;
+  suffix?: string;
 }
 
 export default function TaxaEvolucaoChart({
@@ -22,18 +24,22 @@ export default function TaxaEvolucaoChart({
   color = "#ef4444",
   title = "Evolução Mensal",
   label = "Taxa",
+  dataKey = "taxa_pct",
+  suffix = "%",
 }: Props) {
   const ct = useChartTheme();
 
-  const media = data.length
-    ? Math.round((data.reduce((s, d) => s + d.taxa_pct, 0) / data.length) * 100) / 100
+  const values = data.map(d => d[dataKey] as number);
+  const media = values.length
+    ? Math.round((values.reduce((s, v) => s + v, 0) / values.length) * 10) / 10
     : 0;
-
-  const maxTaxa = data.length ? Math.max(...data.map(d => d.taxa_pct)) : 10;
-  const yMax = Math.ceil(maxTaxa / 5) * 5 + 5;
+  const maxVal = values.length ? Math.max(...values) : 10;
+  const yMax = suffix === "%"
+    ? Math.ceil(maxVal / 5) * 5 + 5
+    : Math.ceil(maxVal / 10) * 10 + 10;
 
   return (
-    <ChartCard title={title} subtitle={`Média do período: ${media}%`}>
+    <ChartCard title={title} subtitle={`Média do período: ${media}${suffix}`}>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={data} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
@@ -44,7 +50,7 @@ export default function TaxaEvolucaoChart({
           />
           <YAxis
             domain={[0, yMax]}
-            tickFormatter={(v: number) => `${v}%`}
+            tickFormatter={(v: number) => `${v}${suffix}`}
             tick={{ fill: ct.tick, fontSize: 10 }}
           />
           <Tooltip
@@ -54,17 +60,17 @@ export default function TaxaEvolucaoChart({
               borderRadius: 8,
             }}
             labelStyle={{ color: ct.tooltip.label, fontSize: 12 }}
-            formatter={(v: number) => [`${v}%`, label]}
+            formatter={(v: number) => [`${v}${suffix}`, label]}
           />
           <ReferenceLine
             y={media}
             stroke="#94a3b8"
             strokeDasharray="4 3"
-            label={{ value: `Média ${media}%`, fill: "#94a3b8", fontSize: 10, position: "insideTopRight" }}
+            label={{ value: `Média ${media}${suffix}`, fill: "#94a3b8", fontSize: 10, position: "insideTopRight" }}
           />
           <Line
             type="monotone"
-            dataKey="taxa_pct"
+            dataKey={dataKey}
             name={label}
             stroke={color}
             strokeWidth={2.5}

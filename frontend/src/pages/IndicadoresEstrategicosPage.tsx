@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import type { TaxaInadimplencia, TaxaRecuperacao } from "../types/api";
-import { fetchTaxaInadimplencia, fetchTaxaRecuperacao } from "../services/api";
+import type { TaxaInadimplencia, TaxaRecuperacao, AtrasoMedio } from "../types/api";
+import { fetchTaxaInadimplencia, fetchTaxaRecuperacao, fetchAtrasoMedio } from "../services/api";
 import TaxaInadimplenciaHero    from "../components/TaxaInadimplenciaHero";
 import TaxaRecuperacaoHero      from "../components/TaxaRecuperacaoHero";
+import AtrasoMedioHero          from "../components/AtrasoMedioHero";
 import TaxaEvolucaoChart        from "../components/TaxaEvolucaoChart";
 import TaxaSegmentacaoChart     from "../components/TaxaSegmentacaoChart";
 import InsightsPanel            from "../components/InsightsPanel";
@@ -18,12 +19,12 @@ function Spinner() {
 
 interface SectionProps {
   title: string;
-  accent?: "red" | "green";
+  accent?: "red" | "green" | "orange";
   children: ReactNode;
 }
 
 function Section({ title, accent = "red", children }: SectionProps) {
-  const dotColor = accent === "green" ? "bg-green-500" : "bg-red-500";
+  const dotColor = accent === "green" ? "bg-green-500" : accent === "orange" ? "bg-orange-500" : "bg-red-500";
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-700/60 pb-2">
@@ -60,11 +61,12 @@ function TargetIcon() {
 export default function IndicadoresEstrategicosPage() {
   const [inadimplencia, setInadimplencia] = useState<TaxaInadimplencia | null>(null);
   const [recuperacao, setRecuperacao]     = useState<TaxaRecuperacao | null>(null);
+  const [atraso, setAtraso]               = useState<AtrasoMedio | null>(null);
   const [error, setError]                 = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchTaxaInadimplencia(), fetchTaxaRecuperacao()])
-      .then(([i, r]) => { setInadimplencia(i); setRecuperacao(r); })
+    Promise.all([fetchTaxaInadimplencia(), fetchTaxaRecuperacao(), fetchAtrasoMedio()])
+      .then(([i, r, a]) => { setInadimplencia(i); setRecuperacao(r); setAtraso(a); })
       .catch(() => setError("Não foi possível conectar à API. Verifique se o servidor Flask está rodando na porta 5000."));
   }, []);
 
@@ -88,6 +90,12 @@ export default function IndicadoresEstrategicosPage() {
     label: r.contemplado === "Sim" ? "Contemplado" : "Não contemplado",
     taxa_pct: r.taxa_pct, total: r.total, atrasados: r.atrasados,
   })) ?? [];
+
+  // ── atraso mappings ──
+  const mediaGeral = atraso?.indicador_geral.media_dias ?? 0;
+  const atrasoRegiaoData = atraso?.por_regiao.map(r => ({ label: r.regiao, taxa_pct: r.media_dias, total: r.total, atrasados: r.total })) ?? [];
+  const atrasoRiscoData  = atraso?.por_faixa_risco.map(r => ({ label: r.faixa, taxa_pct: r.media_dias, total: r.total, atrasados: r.total })) ?? [];
+  const atrasoFormaData  = atraso?.por_forma_pagamento.map(r => ({ label: r.forma, taxa_pct: r.media_dias, total: r.total, atrasados: r.total })) ?? [];
 
   // ── recuperação mappings ──
   const taxaRec = recuperacao?.indicador_geral.taxa_pct ?? 0;
@@ -199,6 +207,48 @@ export default function IndicadoresEstrategicosPage() {
         <Section title="Recuperação — Insights" accent="green">
           {recuperacao
             ? <InsightsPanel title="Insights — Taxa de Recuperação" insights={recuperacao.insights} />
+            : <Spinner />}
+        </Section>
+
+        <Divider />
+
+        {/* ── ATRASO MÉDIO ── */}
+        <Section title="Atraso Médio — Indicador Principal" accent="orange">
+          {atraso
+            ? <AtrasoMedioHero data={atraso.indicador_geral} faixas={atraso.faixas_atraso} />
+            : <Spinner />}
+        </Section>
+
+        <Section title="Atraso Médio — Evolução Temporal" accent="orange">
+          {atraso
+            ? <TaxaEvolucaoChart
+                data={atraso.evolucao_mensal}
+                dataKey="media_dias"
+                suffix=" dias"
+                color="#f97316"
+                title="Evolução Mensal do Atraso Médio"
+                label="Atraso Médio"
+              />
+            : <Spinner />}
+        </Section>
+
+        <Section title="Atraso Médio — Segmentação" accent="orange">
+          <div className="grid grid-cols-2 gap-4">
+            {atraso
+              ? <TaxaSegmentacaoChart title="Por Região" subtitle="Atraso médio em dias por região" data={atrasoRegiaoData} referencia={mediaGeral} suffix=" dias" metricLabel="Atraso médio" />
+              : <Spinner />}
+            {atraso
+              ? <TaxaSegmentacaoChart title="Por Score de Risco" subtitle="Atraso médio por banda de risco" data={atrasoRiscoData} referencia={mediaGeral} suffix=" dias" metricLabel="Atraso médio" />
+              : <Spinner />}
+          </div>
+          {atraso
+            ? <TaxaSegmentacaoChart title="Por Forma de Pagamento" subtitle="Atraso médio em dias por canal de pagamento" data={atrasoFormaData} referencia={mediaGeral} suffix=" dias" metricLabel="Atraso médio" />
+            : <Spinner />}
+        </Section>
+
+        <Section title="Atraso Médio — Insights" accent="orange">
+          {atraso
+            ? <InsightsPanel title="Insights — Atraso Médio" insights={atraso.insights} />
             : <Spinner />}
         </Section>
 
