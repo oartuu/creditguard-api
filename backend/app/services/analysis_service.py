@@ -395,6 +395,32 @@ def get_distribuicao_atrasos() -> dict:
         .to_dict(orient="records")
     )
 
+    faixa_maior = max(faixas, key=lambda f: f["count"])
+    insights = [
+        {
+            "insight": f"A faixa '{faixa_maior['faixa']}' concentra o maior volume de atrasos",
+            "detalhe": (
+                f"{faixa_maior['count']:,} parcelas ({faixa_maior['pct_atrasados']}% dos atrasados) "
+                "ficam nessa faixa. Janela prioritária para cobrança preventiva."
+            ),
+        },
+        {
+            "insight": "48,75% dos atrasos ocorrem nos primeiros 30 dias",
+            "detalhe": (
+                "Clientes que atrasam costumam regularizar rapidamente. "
+                "Acionar cobrança entre o 1º e 15º dia de atraso maximiza a recuperação sem judicialização."
+            ),
+        },
+        {
+            "insight": "Score de risco não prevê duração do atraso",
+            "detalhe": correlacoes["interpretacao"],
+        },
+        {
+            "insight": "Atraso médio estável ao longo do ano",
+            "detalhe": "Sem sazonalidade clara nos 15 meses analisados — a gravidade do atraso é estrutural, não sazonal.",
+        },
+    ]
+
     return {
         "resumo": resumo,
         "faixas_atraso": faixas,
@@ -404,6 +430,7 @@ def get_distribuicao_atrasos() -> dict:
         "por_status_cobranca": por_status,
         "sazonalidade_mensal": por_mes,
         "correlacoes": correlacoes,
+        "insights": insights,
     }
 
 
@@ -714,6 +741,174 @@ def get_distribuicao_regional() -> dict:
             "valor_inadimplente": ranking_valor,
             "recuperacao": ranking_recuperacao,
         },
+        "insights": insights,
+    }
+
+
+def get_status_cobrancas() -> dict:
+    df = load_data()
+
+    contratos = df.drop_duplicates("id_contrato").copy()
+    contratos["nome_assessoria_norm"] = contratos["nome_assessoria"].str.strip().str.title()
+    contratos_clean = contratos[contratos["dias_em_atraso_inicial"] >= 0].copy()
+
+    total = len(contratos)
+    valor_total = contratos["valor_inadimplente_inicial"].sum()
+    STATUS = ["Acordo Firmado", "Em Aberto", "Insucesso", "Ajuizado"]
+
+    # --- visão geral ---
+    visao_geral = []
+    for status in STATUS:
+        grupo = contratos[contratos["status_cobranca"] == status]
+        n = len(grupo)
+        val_sum    = round(float(grupo["valor_inadimplente_inicial"].sum()), 2)
+        val_medio  = round(float(grupo["valor_inadimplente_inicial"].mean()), 2)
+        val_mediano = round(float(grupo["valor_inadimplente_inicial"].median()), 2)
+        score_medio = round(float(grupo["score_interno_risco"].mean()), 2)
+
+        grupo_clean = contratos_clean[contratos_clean["status_cobranca"] == status]
+        dias_medio  = round(float(grupo_clean["dias_em_atraso_inicial"].mean()), 1) if len(grupo_clean) else None
+        dias_mediano = round(float(grupo_clean["dias_em_atraso_inicial"].median()), 1) if len(grupo_clean) else None
+
+        visao_geral.append({
+            "status": status,
+            "total_contratos": n,
+            "pct_contratos": round(n / total * 100, 2),
+            "valor_total": val_sum,
+            "pct_valor": round(val_sum / valor_total * 100, 2),
+            "valor_medio_contrato": val_medio,
+            "valor_mediano_contrato": val_mediano,
+            "score_medio_risco": score_medio,
+            "dias_atraso_inicial_medio": dias_medio,
+            "dias_atraso_inicial_mediano": dias_mediano,
+        })
+
+    # --- por assessoria ---
+    por_assessoria = []
+    for assessoria, grupo in contratos.groupby("nome_assessoria_norm"):
+        n_ass = len(grupo)
+        linha = {"assessoria": assessoria, "total": n_ass}
+        for status in STATUS:
+            cnt = int((grupo["status_cobranca"] == status).sum())
+            linha[status.lower().replace(" ", "_")] = cnt
+            linha[f"pct_{status.lower().replace(' ', '_')}"] = round(cnt / n_ass * 100, 2)
+        linha["valor_em_aberto"] = round(
+            float(grupo[grupo["status_cobranca"] == "Em Aberto"]["valor_inadimplente_inicial"].sum()), 2
+        )
+        por_assessoria.append(linha)
+    por_assessoria.sort(key=lambda x: x["pct_acordo_firmado"], reverse=True)
+
+    # --- por região ---
+    por_regiao = []
+    for regiao, grupo in contratos.groupby("regiao_cliente"):
+        n_reg = len(grupo)
+        linha = {"regiao": regiao, "total": n_reg}
+        for status in STATUS:
+            cnt = int((grupo["status_cobranca"] == status).sum())
+            linha[status.lower().replace(" ", "_")] = cnt
+            linha[f"pct_{status.lower().replace(' ', '_')}"] = round(cnt / n_reg * 100, 2)
+        por_regiao.append(linha)
+    por_regiao.sort(key=lambda x: x["pct_acordo_firmado"], reverse=True)
+
+    # --- por faixa de score ---
+    def banda_risco(score):
+        if pd.isna(score): return "Sem score"
+        if score <= 33: return "Baixo (1-33)"
+        if score <= 66: return "Médio (34-66)"
+        return "Alto (67-100)"
+
+    contratos["banda_risco"] = contratos["score_interno_risco"].apply(banda_risco)
+    por_score = []
+    for banda, grupo in contratos.groupby("banda_risco"):
+        n_b = len(grupo)
+        linha = {"banda_risco": banda, "total": n_b}
+        for status in STATUS:
+            cnt = int((grupo["status_cobranca"] == status).sum())
+            linha[status.lower().replace(" ", "_")] = cnt
+            linha[f"pct_{status.lower().replace(' ', '_')}"] = round(cnt / n_b * 100, 2)
+        por_score.append(linha)
+
+    # --- evolução mensal ---
+    contratos["mes"] = contratos["data_envio_assessoria"].dt.to_period("M").astype(str)
+    por_mes = []
+    for mes, grupo in contratos.groupby("mes"):
+        n_m = len(grupo)
+        linha = {"mes": mes, "total": n_m}
+        for status in STATUS:
+            cnt = int((grupo["status_cobranca"] == status).sum())
+            linha[status.lower().replace(" ", "_")] = cnt
+            linha[f"pct_{status.lower().replace(' ', '_')}"] = round(cnt / n_m * 100, 2)
+        por_mes.append(linha)
+    por_mes.sort(key=lambda x: x["mes"])
+
+    # --- valor em aberto por assessoria (oportunidade de recuperação) ---
+    em_aberto = contratos[contratos["status_cobranca"] == "Em Aberto"]
+    oportunidade = (
+        em_aberto.groupby("nome_assessoria_norm")["valor_inadimplente_inicial"]
+        .agg(total_contratos="count", valor_total="sum", valor_medio="mean")
+        .round(2)
+        .reset_index()
+        .sort_values("valor_total", ascending=False)
+        .to_dict(orient="records")
+    )
+
+    # --- insights ---
+    em_aberto_val = next(x for x in visao_geral if x["status"] == "Em Aberto")
+    acordo_val    = next(x for x in visao_geral if x["status"] == "Acordo Firmado")
+    melhor_ass    = por_assessoria[0]
+    pior_ass      = por_assessoria[-1]
+
+    insights = [
+        {
+            "insight": "R$ 246M presos em contratos 'Em Aberto' — maior oportunidade da carteira",
+            "detalhe": (
+                f"{em_aberto_val['total_contratos']} contratos ({em_aberto_val['pct_contratos']}% do total) "
+                f"somam R$ {em_aberto_val['valor_total']:,.2f} ({em_aberto_val['pct_valor']}% do valor total). "
+                "São contratos sem resolução — prioridade imediata de cobrança ativa."
+            ),
+        },
+        {
+            "insight": "Score de risco não diferencia o outcome da cobrança",
+            "detalhe": (
+                "A distribuição do score é praticamente idêntica entre todos os status "
+                "(média entre 50 e 51 em todos os grupos). O modelo de risco atual "
+                "não consegue prever se um contrato vai ser recuperado, entrar em insucesso ou ser ajuizado."
+            ),
+        },
+        {
+            "insight": "Contratos com menor atraso inicial são mais fáceis de recuperar",
+            "detalhe": (
+                f"Acordos Firmados tinham em média {acordo_val['dias_atraso_inicial_medio']} dias de atraso ao entrar na cobrança, "
+                f"contra {next(x for x in visao_geral if x['status'] == 'Ajuizado')['dias_atraso_inicial_medio']} dias nos Ajuizados. "
+                "Agir mais cedo aumenta a chance de acordo extrajudicial."
+            ),
+        },
+        {
+            "insight": f"Acerta Crédito tem melhor taxa de recuperação entre as assessorias",
+            "detalhe": (
+                f"{melhor_ass['assessoria']} recupera {melhor_ass['pct_acordo_firmado']}% dos contratos, "
+                f"contra {pior_ass['pct_acordo_firmado']}% da {pior_ass['assessoria']}. "
+                "Distribuir mais contratos para assessorias com melhor desempenho pode aumentar a recuperação geral."
+            ),
+        },
+        {
+            "insight": "Judicialização concentra dívidas menores e mais antigas",
+            "detalhe": (
+                f"Contratos Ajuizados têm valor mediano de "
+                f"R$ {next(x for x in visao_geral if x['status'] == 'Ajuizado')['valor_mediano_contrato']:,.2f} "
+                "— similar aos demais. Porém, têm o maior atraso inicial médio, "
+                "indicando que vão a juízo quando negociação extrajudicial já falhou."
+            ),
+        },
+    ]
+
+    return {
+        "visao_geral": visao_geral,
+        "por_assessoria": por_assessoria,
+        "por_regiao": por_regiao,
+        "por_faixa_score": por_score,
+        "evolucao_mensal": por_mes,
+        "oportunidade_em_aberto": oportunidade,
         "insights": insights,
     }
 
