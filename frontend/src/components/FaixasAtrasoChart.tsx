@@ -1,12 +1,20 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
+import type { DistribuicaoAtrasos } from "../types/api";
 import ChartCard from "./ChartCard";
 
 const COLORS = ["#22c55e", "#f97316", "#ef4444", "#a855f7", "#dc2626"];
 
-export default function FaixasAtrasoChart({ data }) {
+interface ChartPoint {
+  faixa: string;
+  quantidade: number;
+  pct: number;
+  color: string;
+}
+
+export default function FaixasAtrasoChart({ data }: { data: DistribuicaoAtrasos | null }) {
   if (!data) return null;
 
-  const chartData = data.faixas_atraso?.map((f, i) => ({
+  const chartData = data.faixas_atraso?.map((f, i): ChartPoint => ({
     faixa: f.faixa,
     quantidade: f.count,
     pct: f.pct_atrasados,
@@ -23,7 +31,7 @@ export default function FaixasAtrasoChart({ data }) {
           <Tooltip
             contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8 }}
             labelStyle={{ color: "#f1f5f9" }}
-            formatter={(v, n, p) => [`${v.toLocaleString("pt-BR")} (${p.payload.pct}%)`, "Qtd"]}
+            formatter={(v, _n, p) => [`${(v as number).toLocaleString("pt-BR")} (${p.payload.pct}%)`, "Qtd"]}
           />
           <Bar dataKey="quantidade" radius={[4, 4, 0, 0]}>
             {chartData?.map((d, i) => <Cell key={i} fill={d.color} />)}

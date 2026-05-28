@@ -1,17 +1,31 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import type { StatusCobrancas } from "../types/api";
 import ChartCard from "./ChartCard";
 
-const COLORS = { "Acordo Firmado": "#22c55e", "Em Aberto": "#f97316", "Insucesso": "#ef4444", "Ajuizado": "#a855f7" };
+const COLORS: Record<string, string> = {
+  "Acordo Firmado": "#22c55e",
+  "Em Aberto": "#f97316",
+  "Insucesso": "#ef4444",
+  "Ajuizado": "#a855f7",
+};
 
-const fmtBRL = (v) => {
+const fmtBRL = (v: number) => {
   if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
   return `R$ ${(v / 1_000).toFixed(0)}K`;
 };
 
-export default function StatusCobrancasChart({ data }) {
+interface ChartPoint {
+  name: string;
+  value: number;
+  pct: number;
+  valor: number;
+  fill: string;
+}
+
+export default function StatusCobrancasChart({ data }: { data: StatusCobrancas | null }) {
   if (!data) return null;
 
-  const chartData = data.visao_geral?.map(d => ({
+  const chartData = data.visao_geral?.map((d): ChartPoint => ({
     name: d.status,
     value: d.total_contratos,
     pct: d.pct_contratos,
@@ -29,7 +43,10 @@ export default function StatusCobrancasChart({ data }) {
           </Pie>
           <Tooltip
             contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8 }}
-            formatter={(v, n, p) => [`${v.toLocaleString("pt-BR")} contratos (${p.payload.pct}%) — ${fmtBRL(p.payload.valor)}`, p.payload.name]}
+            formatter={(v, _n, p) => [
+              `${(v as number).toLocaleString("pt-BR")} contratos (${p.payload.pct}%) — ${fmtBRL(p.payload.valor as number)}`,
+              p.payload.name,
+            ]}
           />
           <Legend wrapperStyle={{ color: "#94a3b8", fontSize: 12 }} />
         </PieChart>

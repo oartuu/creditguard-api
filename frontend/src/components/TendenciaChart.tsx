@@ -1,12 +1,17 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import type { Tendencia } from "../types/api";
 import ChartCard from "./ChartCard";
 
-const fmt = (v) => `${v}%`;
+interface MergedPoint {
+  mes: string;
+  inadimplencia?: number;
+  recuperacao?: number;
+}
 
-export default function TendenciaChart({ data }) {
+export default function TendenciaChart({ data }: { data: Tendencia | null }) {
   if (!data) return null;
 
-  const merged = {};
+  const merged: Record<string, MergedPoint> = {};
   data.inadimplencia_por_mes?.forEach(d => {
     merged[d.mes] = { mes: d.mes, inadimplencia: d.taxa_inadimplencia_pct };
   });
@@ -23,7 +28,7 @@ export default function TendenciaChart({ data }) {
         <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
           <XAxis dataKey="mes" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-          <YAxis tickFormatter={fmt} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+          <YAxis tickFormatter={(v: number) => `${v}%`} tick={{ fill: "#94a3b8", fontSize: 11 }} />
           <Tooltip
             contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8 }}
             labelStyle={{ color: "#f1f5f9" }}
