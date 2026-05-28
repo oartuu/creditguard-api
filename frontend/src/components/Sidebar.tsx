@@ -25,6 +25,22 @@ const MODULES = [
     available: true,
     icon: <LightbulbIcon />,
   },
+  {
+    id: "visao-diretoria",
+    num: "04",
+    label: "Visão da Diretoria",
+    sub: "Dashboard Executivo",
+    available: true,
+    icon: <BoardIcon />,
+  },
+  {
+    id: "visao-financeira",
+    num: "05",
+    label: "Visão Financeira",
+    sub: "Valores & Exposição",
+    available: true,
+    icon: <FinanceiroIcon />,
+  },
 ];
 
 function ChartBarIcon() {
@@ -51,6 +67,24 @@ function LightbulbIcon() {
       <line x1="9" y1="18" x2="15" y2="18"/>
       <line x1="10" y1="22" x2="14" y2="22"/>
       <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+    </svg>
+  );
+}
+
+function BoardIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18M9 21V9" />
+    </svg>
+  );
+}
+
+function FinanceiroIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
     </svg>
   );
 }

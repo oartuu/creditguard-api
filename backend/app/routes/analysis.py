@@ -16,6 +16,8 @@ from app.services.analysis_service import (
     get_taxa_inadimplencia,
     get_taxa_recuperacao,
     get_atraso_medio,
+    get_visao_diretoria,
+    get_visao_financeira,
 )
 
 analysis_bp = Blueprint("analysis", __name__, url_prefix="/analysis")
@@ -99,3 +101,13 @@ def tendencia_temporal():
 @analysis_bp.route("/padroes-insights")
 def padroes_insights():
     return jsonify(get_padroes_insights())
+
+
+@analysis_bp.route("/visao-diretoria")
+def visao_diretoria():
+    return jsonify(get_visao_diretoria())
+
+
+@analysis_bp.route("/visao-financeira")
+def visao_financeira():
+    return jsonify(get_visao_financeira())

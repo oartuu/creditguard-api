@@ -4,6 +4,8 @@ import Sidebar from "../components/Sidebar";
 import AnaliseExploratoriaPage         from "./AnaliseExploratoriaPage";
 import IndicadoresEstrategicosPage     from "./IndicadoresEstrategicosPage";
 import PadroesInsightsPage             from "./PadroesInsightsPage";
+import VisaoDiretoriaPage              from "./VisaoDiretoriaPage";
+import VisaoFinanceiraPage             from "./VisaoFinanceiraPage";
 
 function SunIcon() {
   return (
@@ -71,6 +73,8 @@ export default function Dashboard() {
             {activeModule === "analise-exploratoria"       && <AnaliseExploratoriaPage />}
             {activeModule === "indicadores-estrategicos"  && <IndicadoresEstrategicosPage />}
             {activeModule === "padroes-insights"          && <PadroesInsightsPage />}
+            {activeModule === "visao-diretoria"           && <VisaoDiretoriaPage />}
+            {activeModule === "visao-financeira"          && <VisaoFinanceiraPage />}
           </div>
         </main>
       </div>

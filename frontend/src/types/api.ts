@@ -335,6 +335,51 @@ export interface PadroesInsights {
   recomendacoes: Recomendacao[];
 }
 
+// ── Módulo 04 – Visão da Diretoria ─────────────────────────────────────────
+
+export interface AlertaExecutivo {
+  tipo: "critico" | "alerta" | "positivo" | "neutro" | "info";
+  titulo: string;
+  descricao: string;
+}
+
+export interface VisaoConsolidadaRow {
+  metrica: string;
+  valor: string;
+  tendencia: string;
+  tendencia_label: string;
+  variacao: string;
+  avaliacao: "bom" | "alerta" | "critico" | "neutro";
+  contexto: string;
+}
+
+export interface SaudeCarteira {
+  score: number;
+  nivel: "Saudável" | "Atenção" | "Crítico";
+  cor: "green" | "yellow" | "red";
+}
+
+export interface VisaoDiretoria {
+  kpis: Kpis;
+  inadimplencia: {
+    indicador_geral: TaxaInadimplenciaGeral;
+    evolucao_mensal: TaxaMensal[];
+  };
+  recuperacao: {
+    indicador_geral: TaxaRecuperacaoGeral;
+    evolucao_mensal: TaxaRecMensal[];
+  };
+  tendencia_temporal: {
+    inadimplencia: { serie_mensal: Array<{ mes: string; total: number; atrasados: number; taxa_pct: number }>; tendencia: TendenciaMetrica };
+    recuperacao:   { serie_mensal: Array<{ mes: string; total: number; acordos: number; taxa_pct: number }>;   tendencia: TendenciaMetrica };
+    atraso_medio:  { serie_mensal: Array<{ mes: string; total: number; media_dias: number }>;                  tendencia: TendenciaMetrica };
+    insights: Insight[];
+  };
+  saude_carteira: SaudeCarteira;
+  alertas_executivos: AlertaExecutivo[];
+  visao_consolidada: VisaoConsolidadaRow[];
+}
+
 // ── Módulo 02 – Risco Regional / Tendência (continuação) ───────────────────
 export interface RiscoRegionalItem {
   regiao: string;
@@ -369,6 +414,59 @@ export interface TendenciaMetrica {
   n_periodos: number;
   valor_inicial: number;
   valor_final: number;
+}
+
+// ── Módulo 05 – Visão Financeira ───────────────────────────────────────────
+
+export interface VFStatusItem {
+  status: string;
+  valor: number;
+  total_contratos: number;
+  pct_valor: number;
+}
+
+export interface VFRegiao {
+  regiao: string;
+  total_contratos: number;
+  valor_inadimplente: number;
+  acordos: number;
+  taxa_recuperacao_pct: number;
+  pct_carteira: number;
+}
+
+export interface VFEvolucaoMes {
+  mes: string;
+  total_contratos: number;
+  valor_inadimplente: number;
+  acordos: number;
+  valor_recuperado: number;
+  taxa_recuperacao_pct: number;
+}
+
+export interface VFAtrasoRegiao {
+  regiao: string;
+  total: number;
+  media_dias: number;
+  mediana_dias: number;
+}
+
+export interface VisaoFinanceira {
+  valor_inadimplente: {
+    total: number;
+    valor_recuperado: number;
+    valor_em_aberto: number;
+    taxa_recuperacao_valor_pct: number;
+    por_status: VFStatusItem[];
+  };
+  atraso_medio: {
+    media_dias: number;
+    mediana_dias: number;
+    max_dias: number;
+    total_atrasados: number;
+    por_regiao: VFAtrasoRegiao[];
+  };
+  distribuicao_regional: VFRegiao[];
+  evolucao_financeira: VFEvolucaoMes[];
 }
 
 export interface TendenciaTemporal {
