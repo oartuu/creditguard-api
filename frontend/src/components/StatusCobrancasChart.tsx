@@ -1,0 +1,58 @@
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import type { StatusCobrancas } from "../types/api";
+import ChartCard from "./ChartCard";
+import { useChartTheme } from "../contexts/ThemeContext";
+
+const COLORS: Record<string, string> = {
+  "Acordo Firmado": "#22c55e",
+  "Em Aberto": "#f97316",
+  "Insucesso": "#ef4444",
+  "Ajuizado": "#a855f7",
+};
+
+const fmtBRL = (v: number) => {
+  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
+  return `R$ ${(v / 1_000).toFixed(0)}K`;
+};
+
+interface ChartPoint {
+  name: string;
+  value: number;
+  pct: number;
+  valor: number;
+  fill: string;
+}
+
+export default function StatusCobrancasChart({ data }: { data: StatusCobrancas | null }) {
+  const ct = useChartTheme();
+  if (!data) return null;
+
+  const chartData = data.visao_geral?.map((d): ChartPoint => ({
+    name: d.status,
+    value: d.total_contratos,
+    pct: d.pct_contratos,
+    valor: d.valor_total,
+    fill: COLORS[d.status] ?? "#64748b",
+  }));
+
+  return (
+    <ChartCard title="Status das Cobranças" subtitle="Distribuição dos contratos por desfecho">
+      <ResponsiveContainer width="100%" height={260}>
+        <PieChart>
+          <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={100}
+            dataKey="value" nameKey="name" paddingAngle={3}>
+            {chartData?.map((d, i) => <Cell key={i} fill={d.fill} />)}
+          </Pie>
+          <Tooltip
+            contentStyle={{ background: ct.tooltip.background, border: `1px solid ${ct.tooltip.border}`, borderRadius: 8 }}
+            formatter={(v, _n, p) => [
+              `${(v as number).toLocaleString("pt-BR")} contratos (${p.payload.pct}%) — ${fmtBRL(p.payload.valor as number)}`,
+              p.payload.name,
+            ]}
+          />
+          <Legend wrapperStyle={{ color: ct.legend, fontSize: 12 }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
