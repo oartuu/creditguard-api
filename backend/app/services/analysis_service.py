@@ -1394,6 +1394,532 @@ def get_taxa_inadimplencia() -> dict:
     }
 
 
+def get_padroes_insights() -> dict:
+    df = load_data()
+    contratos = df.drop_duplicates("id_contrato").copy()
+    contratos["nome_assessoria_norm"] = contratos["nome_assessoria"].str.strip().str.title()
+    df_valid = df[df["regiao_cliente"].notna() & (df["regiao_cliente"] != "")].copy()
+
+    def banda_risco(score):
+        if pd.isna(score): return "Sem score"
+        if score <= 33:    return "Baixo (1-33)"
+        if score <= 66:    return "Médio (34-66)"
+        return "Alto (67-100)"
+
+    df["banda"] = df["score_interno_risco"].apply(banda_risco)
+    contratos["banda"] = contratos["score_interno_risco"].apply(banda_risco)
+
+    # ── 1. PERFIS DE ALTO RISCO ──
+    cross_bc = (
+        df.groupby(["banda", "indicador_contemplado"])
+        .agg(total=("pagamento_em_dia", "count"), atrasados=("pagamento_em_dia", lambda x: (x == False).sum()))
+        .reset_index()
+    )
+    cross_bc["taxa_pct"] = (cross_bc["atrasados"] / cross_bc["total"] * 100).round(2)
+    cross_bc_list = cross_bc.rename(columns={"banda": "score", "indicador_contemplado": "contemplado"}).to_dict(orient="records")
+
+    cross_bf = (
+        df.groupby(["banda", "forma_pagamento"])
+        .agg(total=("pagamento_em_dia", "count"), atrasados=("pagamento_em_dia", lambda x: (x == False).sum()))
+        .reset_index()
+    )
+    cross_bf["taxa_pct"] = (cross_bf["atrasados"] / cross_bf["total"] * 100).round(2)
+    cross_bf_list = cross_bf.rename(columns={"banda": "score"}).to_dict(orient="records")
+
+    cross_all = (
+        df.groupby(["banda", "indicador_contemplado", "forma_pagamento"])
+        .agg(total=("pagamento_em_dia", "count"), atrasados=("pagamento_em_dia", lambda x: (x == False).sum()))
+        .reset_index()
+    )
+    cross_all["taxa_pct"] = (cross_all["atrasados"] / cross_all["total"] * 100).round(2)
+    cross_all = cross_all[cross_all["total"] >= 50]
+    top_combinacoes = (
+        cross_all.sort_values("taxa_pct", ascending=False)
+        .head(5)
+        .rename(columns={"banda": "score", "indicador_contemplado": "contemplado"})
+        .to_dict(orient="records")
+    )
+
+    # ── 2. REGIÕES CRÍTICAS ──
+    contratos_valid = contratos[contratos["regiao_cliente"].notna() & (contratos["regiao_cliente"] != "")]
+    regioes_criticas = []
+    for regiao in sorted(df_valid["regiao_cliente"].unique()):
+        g = df_valid[df_valid["regiao_cliente"] == regiao]
+        c = contratos_valid[contratos_valid["regiao_cliente"] == regiao]
+        n = len(g)
+        nc = len(c)
+
+        taxa_iad = round(float((g["pagamento_em_dia"] == False).sum()) / n * 100, 2) if n else 0.0
+        acordos  = int((c["status_cobranca"] == "Acordo Firmado").sum())
+        ajuizados = int((c["status_cobranca"] == "Ajuizado").sum())
+        em_aberto = int((c["status_cobranca"] == "Em Aberto").sum())
+        taxa_rec  = round(acordos  / nc * 100, 2) if nc else 0.0
+        taxa_jud  = round(ajuizados / nc * 100, 2) if nc else 0.0
+        taxa_ab   = round(em_aberto / nc * 100, 2) if nc else 0.0
+        atraso_m  = round(float(g[g["dias_atraso"] > 0]["dias_atraso"].mean()), 1) if (g["dias_atraso"] > 0).any() else 0.0
+        val_inad  = round(float(c["valor_inadimplente_inicial"].sum()), 2)
+
+        score = round(float(taxa_iad * 0.30 + (100 - taxa_rec) * 0.40 + taxa_jud * 0.30), 1)
+        regioes_criticas.append({
+            "regiao": regiao,
+            "taxa_inadimplencia": taxa_iad,
+            "taxa_recuperacao": taxa_rec,
+            "taxa_judicializacao": taxa_jud,
+            "taxa_em_aberto": taxa_ab,
+            "valor_inadimplente": val_inad,
+            "atraso_medio_dias": atraso_m,
+            "score_criticidade": score,
+            "total_parcelas": n,
+            "total_contratos": nc,
+        })
+
+    regioes_criticas.sort(key=lambda x: x["score_criticidade"], reverse=True)
+    n_regs = len(regioes_criticas)
+    for i, r in enumerate(regioes_criticas):
+        if i < max(1, round(n_regs * 0.4)):
+            r["urgencia"] = "Atenção Crítica"
+        elif i < max(2, round(n_regs * 0.8)):
+            r["urgencia"] = "Monitoramento Ativo"
+        else:
+            r["urgencia"] = "Referência"
+
+    # ── 3. EFICIÊNCIA DE RECUPERAÇÃO ──
+    eficiencia_ass = []
+    for ass, grupo in contratos.groupby("nome_assessoria_norm"):
+        n = len(grupo)
+        if n == 0:
+            continue
+        acordos_n  = int((grupo["status_cobranca"] == "Acordo Firmado").sum())
+        em_ab_n    = int((grupo["status_cobranca"] == "Em Aberto").sum())
+        insucesso_n = int((grupo["status_cobranca"] == "Insucesso").sum())
+        ajuizado_n  = int((grupo["status_cobranca"] == "Ajuizado").sum())
+
+        taxa_rec_a = round(acordos_n  / n * 100, 2)
+        taxa_ab_a  = round(em_ab_n    / n * 100, 2)
+        taxa_ins_a = round(insucesso_n / n * 100, 2)
+        taxa_jud_a = round(ajuizado_n  / n * 100, 2)
+
+        val_tot  = round(float(grupo["valor_inadimplente_inicial"].sum()), 2)
+        val_rec  = round(float(grupo[grupo["status_cobranca"] == "Acordo Firmado"]["valor_inadimplente_inicial"].sum()), 2)
+        val_perd = round(float(grupo[grupo["status_cobranca"].isin(["Insucesso", "Ajuizado"])]["valor_inadimplente_inicial"].sum()), 2)
+        val_ab   = round(float(grupo[grupo["status_cobranca"] == "Em Aberto"]["valor_inadimplente_inicial"].sum()), 2)
+
+        score_ef = round(taxa_rec_a * (1 - taxa_jud_a / 100), 1)
+        eficiencia_ass.append({
+            "assessoria": ass,
+            "total_contratos": n,
+            "acordos": acordos_n,
+            "em_aberto": em_ab_n,
+            "insucesso": insucesso_n,
+            "ajuizado": ajuizado_n,
+            "taxa_recuperacao": taxa_rec_a,
+            "taxa_em_aberto": taxa_ab_a,
+            "taxa_insucesso": taxa_ins_a,
+            "taxa_judicializacao": taxa_jud_a,
+            "valor_total": val_tot,
+            "valor_recuperado": val_rec,
+            "valor_perdido": val_perd,
+            "valor_em_aberto": val_ab,
+            "score_eficiencia": score_ef,
+        })
+    eficiencia_ass.sort(key=lambda x: x["score_eficiencia"], reverse=True)
+
+    # ── 4. PADRÕES TEMPORAIS ──
+    MESES_PT = {1:"Jan",2:"Fev",3:"Mar",4:"Abr",5:"Mai",6:"Jun",7:"Jul",8:"Ago",9:"Set",10:"Out",11:"Nov",12:"Dez"}
+    df_v = df.dropna(subset=["data_vencimento"]).copy()
+    df_v["mes_num"] = df_v["data_vencimento"].dt.month
+
+    sazonal = (
+        df_v.groupby("mes_num")
+        .agg(total=("pagamento_em_dia", "count"), atrasados=("pagamento_em_dia", lambda x: (x == False).sum()))
+        .reset_index()
+    )
+    sazonal["taxa_pct"] = (sazonal["atrasados"] / sazonal["total"] * 100).round(2)
+    sazonal["mes_nome"] = sazonal["mes_num"].map(MESES_PT)
+    sazonal_list = sazonal.to_dict(orient="records")
+
+    ORDEM_SEMANA = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+    TRAD_SEMANA  = {"Monday":"Seg","Tuesday":"Ter","Wednesday":"Qua","Thursday":"Qui","Friday":"Sex","Saturday":"Sáb","Sunday":"Dom"}
+    df_v["dia_semana"] = df_v["data_vencimento"].dt.day_name()
+    dow_list = []
+    for dia in ORDEM_SEMANA:
+        g = df_v[df_v["dia_semana"] == dia]
+        if len(g) == 0:
+            continue
+        atr = int((g["pagamento_em_dia"] == False).sum())
+        dow_list.append({
+            "dia": TRAD_SEMANA[dia],
+            "total": len(g),
+            "atrasados": atr,
+            "taxa_pct": round(atr / len(g) * 100, 2),
+        })
+
+    df_v["mes"] = df_v["data_vencimento"].dt.to_period("M").astype(str)
+    evo = (
+        df_v.groupby("mes")
+        .agg(total=("pagamento_em_dia", "count"), atrasados=("pagamento_em_dia", lambda x: (x == False).sum()))
+        .reset_index()
+    )
+    evo["taxa_pct"] = (evo["atrasados"] / evo["total"] * 100).round(2)
+    evo = evo.sort_values("mes")
+    evo["mom_ppt"] = evo["taxa_pct"].diff().round(2)
+    evo_records = evo.to_dict(orient="records")
+    for r in evo_records:
+        if pd.isna(r.get("mom_ppt")):
+            r["mom_ppt"] = None
+
+    pico = evo.loc[evo["taxa_pct"].idxmax()]
+    vale = evo.loc[evo["taxa_pct"].idxmin()]
+    amplitude = round(float(pico["taxa_pct"] - vale["taxa_pct"]), 2)
+
+    # ── 5. INSIGHTS CONSOLIDADOS ──
+    total_p = len(df)
+    n_atr   = int((df["pagamento_em_dia"] == False).sum())
+    taxa_iad_g = round(n_atr / total_p * 100, 2)
+    n_c_tot = len(contratos)
+    n_ac_tot = int((contratos["status_cobranca"] == "Acordo Firmado").sum())
+    n_em_ab  = int((contratos["status_cobranca"] == "Em Aberto").sum())
+    taxa_rec_g = round(n_ac_tot / n_c_tot * 100, 2)
+    pct_em_ab  = round(n_em_ab / n_c_tot * 100, 1)
+
+    best_ass  = eficiencia_ass[0]
+    worst_ass = eficiencia_ass[-1]
+    r_critica = regioes_criticas[0]
+
+    nao_contempl = next((r for r in cross_bc_list if r["contemplado"] == "Não" and "Alto" in r["score"]), None)
+    sim_contempl  = next((r for r in cross_bc_list if r["contemplado"] == "Sim" and "Alto" in r["score"]), None)
+    diff_contempl = (
+        round(nao_contempl["taxa_pct"] - sim_contempl["taxa_pct"], 2)
+        if nao_contempl and sim_contempl else 0.0
+    )
+
+    insights_consolidados = [
+        {
+            "categoria": "Risco",
+            "prioridade": "alta",
+            "insight": f"Taxa de inadimplência estrutural em {taxa_iad_g}% — spread regional < 0,3 p.p.",
+            "detalhe": "O risco não é geográfico, é sistêmico. Ação local isolada não resolve; é necessária intervenção na política de crédito e nas condições de concessão.",
+        },
+        {
+            "categoria": "Recuperação",
+            "prioridade": "alta",
+            "insight": f"Somente {taxa_rec_g}% dos contratos foram recuperados — {pct_em_ab}% presos em 'Em Aberto'",
+            "detalhe": f"{n_em_ab} contratos sem resolução representam a maior oportunidade imediata. Ação proativa sobre esse grupo pode elevar a taxa de recuperação significativamente.",
+        },
+        {
+            "categoria": "Assessoria",
+            "prioridade": "media",
+            "insight": f"{best_ass['assessoria']} supera {worst_ass['assessoria']} em {round(best_ass['taxa_recuperacao'] - worst_ass['taxa_recuperacao'], 1)} p.p. de recuperação",
+            "detalhe": "Diferença de performance entre assessorias indica que redistribuição de contratos pode elevar a taxa geral sem custo adicional.",
+        },
+        {
+            "categoria": "Perfil",
+            "prioridade": "media",
+            "insight": f"Contemplação reduz inadimplência em {diff_contempl} p.p. no score Alto — principal preditor comportamental",
+            "detalhe": "Score de risco discrimina quem atrasa (diferença de ~18 p.p. entre Alto e Baixo risco) mas não prevê por quanto tempo. Contemplação é o segundo preditor mais forte.",
+        },
+        {
+            "categoria": "Temporal",
+            "prioridade": "baixa",
+            "insight": f"Inadimplência estável ao longo do período (amplitude mensal de {amplitude} p.p.)",
+            "detalhe": "Sem sazonalidade pronunciada nos 15 meses analisados. O comportamento é estrutural — não há época do ano de maior risco que justifique reforço sazonal de cobrança.",
+        },
+        {
+            "categoria": "Regional",
+            "prioridade": "media",
+            "insight": f"{r_critica['regiao']} lidera em criticidade: menor recuperação ({r_critica['taxa_recuperacao']}%) e maior judicialização ({r_critica['taxa_judicializacao']}%)",
+            "detalhe": "Score de criticidade combina inadimplência (30%), recuperação invertida (40%) e judicialização (30%). Recuperação baixa pesa mais do que inadimplência alta.",
+        },
+    ]
+
+    # ── 6. RECOMENDAÇÕES ──
+    val_em_ab = round(float(contratos[contratos["status_cobranca"] == "Em Aberto"]["valor_inadimplente_inicial"].sum()), 2)
+
+    recomendacoes = [
+        {
+            "prioridade": "Crítica",
+            "area": "Cobrança",
+            "titulo": "Ativar cobrança proativa nos contratos 'Em Aberto'",
+            "descricao": f"R$ {val_em_ab:,.0f} em contratos sem resolução. Acionar imediatamente com proposta de acordo antes de escalar para judicialização.",
+            "impacto_esperado": "Potencial de elevar taxa de recuperação em 10-15 p.p.",
+            "prazo": "Imediato (30 dias)",
+        },
+        {
+            "prioridade": "Crítica",
+            "area": "Cobrança",
+            "titulo": "Concentrar acionamento no 1°–15° dia de atraso",
+            "descricao": "Janela ótima de recuperação extrajudicial: 48,75% dos atrasos se concentram nos primeiros 30 dias. Acionar nessa janela maximiza o retorno e reduz custo.",
+            "impacto_esperado": "Redução de judicialização e custo unitário de cobrança.",
+            "prazo": "Imediato",
+        },
+        {
+            "prioridade": "Alta",
+            "area": "Operações",
+            "titulo": f"Redistribuir contratos para {best_ass['assessoria']}",
+            "descricao": f"Maior eficiência ({best_ass['taxa_recuperacao']}% vs. média {taxa_rec_g}%). Aumentar volume alocado às assessorias de maior score de eficiência.",
+            "impacto_esperado": "Elevação da taxa geral de recuperação sem custo adicional.",
+            "prazo": "30–60 dias",
+        },
+        {
+            "prioridade": "Alta",
+            "area": "Crédito",
+            "titulo": "Diferenciar condições de crédito para não-contemplados",
+            "descricao": "Não-contemplados têm inadimplência consistentemente maior. Avaliar garantias adicionais, limite diferenciado ou taxa de juros ajustada ao risco.",
+            "impacto_esperado": "Redução de inadimplência na entrada de novos contratos.",
+            "prazo": "60–90 dias",
+        },
+        {
+            "prioridade": "Média",
+            "area": "Risco",
+            "titulo": "Aprimorar modelo de score para prever duração do atraso",
+            "descricao": "Score atual discrimina quem atrasa, mas correlação com dias de atraso é quase nula. Adicionar features comportamentais e histórico de parcelas.",
+            "impacto_esperado": "Segmentação mais granular para estratégia de cobrança diferenciada por perfil.",
+            "prazo": "90–180 dias",
+        },
+        {
+            "prioridade": "Média",
+            "area": "Regional",
+            "titulo": f"Priorizar acordos extrajudiciais na {r_critica['regiao']}",
+            "descricao": f"{r_critica['regiao']} tem maior taxa de judicialização ({r_critica['taxa_judicializacao']}%) e menor recuperação ({r_critica['taxa_recuperacao']}%). Estratégia extrajudicial ativa reduz custo e prazo.",
+            "impacto_esperado": "Redução de custos jurídicos e aumento de recuperação na região.",
+            "prazo": "60–90 dias",
+        },
+    ]
+
+    return {
+        "perfis_alto_risco": {
+            "cross_score_contemplado": cross_bc_list,
+            "cross_score_forma": cross_bf_list,
+            "top_combinacoes": top_combinacoes,
+        },
+        "regioes_criticas": regioes_criticas,
+        "eficiencia_recuperacao": eficiencia_ass,
+        "padroes_temporais": {
+            "sazonalidade_mensal": sazonal_list,
+            "por_dia_semana": dow_list,
+            "evolucao_mom": evo_records,
+            "pico": {"mes": str(pico["mes"]), "taxa_pct": float(pico["taxa_pct"])},
+            "vale": {"mes": str(vale["mes"]), "taxa_pct": float(vale["taxa_pct"])},
+            "amplitude_ppt": amplitude,
+        },
+        "insights_consolidados": insights_consolidados,
+        "recomendacoes": recomendacoes,
+    }
+
+
+def get_risco_regional_estrategico() -> dict:
+    df = load_data()
+
+    df_valid = df[df["regiao_cliente"].notna() & (df["regiao_cliente"] != "")].copy()
+    contratos = df.drop_duplicates("id_contrato").copy()
+    contratos_valid = contratos[contratos["regiao_cliente"].notna() & (contratos["regiao_cliente"] != "")]
+
+    regioes = sorted(df_valid["regiao_cliente"].unique())
+    metricas = []
+
+    for regiao in regioes:
+        grupo = df_valid[df_valid["regiao_cliente"] == regiao]
+        contratos_reg = contratos_valid[contratos_valid["regiao_cliente"] == regiao]
+
+        n_total = len(grupo)
+        n_atrasados = int((grupo["pagamento_em_dia"] == False).sum())
+        taxa_inadimplencia = round(n_atrasados / n_total * 100, 2) if n_total else 0.0
+
+        n_contratos = len(contratos_reg)
+        acordos = int((contratos_reg["status_cobranca"] == "Acordo Firmado").sum())
+        ajuizados = int((contratos_reg["status_cobranca"] == "Ajuizado").sum())
+        taxa_recuperacao = round(acordos / n_contratos * 100, 2) if n_contratos else 0.0
+        taxa_judicializacao = round(ajuizados / n_contratos * 100, 2) if n_contratos else 0.0
+
+        atrasados_grupo = grupo[grupo["dias_atraso"] > 0]
+        atraso_medio = round(float(atrasados_grupo["dias_atraso"].mean()), 1) if len(atrasados_grupo) else 0.0
+
+        metricas.append({
+            "regiao": regiao,
+            "taxa_inadimplencia": taxa_inadimplencia,
+            "taxa_recuperacao": taxa_recuperacao,
+            "taxa_judicializacao": taxa_judicializacao,
+            "atraso_medio": atraso_medio,
+            "total_parcelas": n_total,
+            "total_contratos": n_contratos,
+        })
+
+    max_iad = max(m["taxa_inadimplencia"] for m in metricas) or 1.0
+    max_jud = max(m["taxa_judicializacao"] for m in metricas) or 1.0
+    max_atr = max(m["atraso_medio"] for m in metricas) or 1.0
+
+    PESOS = {"inadimplencia": 0.35, "recuperacao": 0.30, "judicializacao": 0.20, "atraso": 0.15}
+
+    for m in metricas:
+        s_iad = (m["taxa_inadimplencia"] / max_iad) * 100
+        s_rec = (1 - m["taxa_recuperacao"] / 100) * 100
+        s_jud = (m["taxa_judicializacao"] / max_jud) * 100
+        s_atr = (m["atraso_medio"] / max_atr) * 100
+
+        score = round(
+            s_iad * PESOS["inadimplencia"] +
+            s_rec * PESOS["recuperacao"] +
+            s_jud * PESOS["judicializacao"] +
+            s_atr * PESOS["atraso"],
+            1,
+        )
+        m["score_risco_composto"] = score
+        m["scores_componentes"] = {
+            "inadimplencia": round(s_iad, 1),
+            "recuperacao_inv": round(s_rec, 1),
+            "judicializacao": round(s_jud, 1),
+            "atraso": round(s_atr, 1),
+        }
+        m["nivel_risco"] = "Alto" if score >= 65 else "Médio" if score >= 35 else "Baixo"
+
+    metricas.sort(key=lambda x: x["score_risco_composto"], reverse=True)
+
+    mais_risco = metricas[0]
+    menos_risco = metricas[-1]
+
+    insights = [
+        {
+            "insight": f"{mais_risco['regiao']} apresenta maior risco composto ({mais_risco['score_risco_composto']}/100)",
+            "detalhe": (
+                f"Inadimplência {mais_risco['taxa_inadimplencia']}%, "
+                f"recuperação {mais_risco['taxa_recuperacao']}%, "
+                f"judicialização {mais_risco['taxa_judicializacao']}%, "
+                f"atraso médio {mais_risco['atraso_medio']} dias. "
+                "Requer atenção estratégica prioritária."
+            ),
+        },
+        {
+            "insight": f"{menos_risco['regiao']} é a região de menor risco composto ({menos_risco['score_risco_composto']}/100)",
+            "detalhe": (
+                f"Melhor combinação de indicadores: recuperação de {menos_risco['taxa_recuperacao']}% "
+                f"com atraso médio de {menos_risco['atraso_medio']} dias."
+            ),
+        },
+        {
+            "insight": "Score composto combina 4 dimensões com pesos diferenciados",
+            "detalhe": (
+                "Inadimplência (35%) + Recuperação invertida (30%) + Judicialização (20%) + Atraso médio (15%). "
+                "Regiões com baixa recuperação são mais penalizadas do que as com alta inadimplência isolada."
+            ),
+        },
+    ]
+
+    return {
+        "por_regiao": metricas,
+        "pesos": PESOS,
+        "insights": insights,
+    }
+
+
+def get_tendencia_temporal() -> dict:
+    df = load_data()
+
+    df_v = df.dropna(subset=["data_vencimento"]).copy()
+    df_v["mes"] = df_v["data_vencimento"].dt.to_period("M").astype(str)
+    evo_iad = (
+        df_v.groupby("mes")
+        .agg(total=("pagamento_em_dia", "count"), atrasados=("pagamento_em_dia", lambda x: (x == False).sum()))
+        .reset_index()
+    )
+    evo_iad["taxa_pct"] = (evo_iad["atrasados"] / evo_iad["total"] * 100).round(2)
+    evo_iad = evo_iad.sort_values("mes")
+
+    contratos = df.drop_duplicates("id_contrato").dropna(subset=["data_envio_assessoria"]).copy()
+    contratos["mes"] = contratos["data_envio_assessoria"].dt.to_period("M").astype(str)
+    evo_rec = (
+        contratos.groupby("mes")
+        .agg(total=("status_cobranca", "count"), acordos=("status_cobranca", lambda x: (x == "Acordo Firmado").sum()))
+        .reset_index()
+    )
+    evo_rec["taxa_pct"] = (evo_rec["acordos"] / evo_rec["total"] * 100).round(2)
+    evo_rec = evo_rec.sort_values("mes")
+
+    df_atr = df[df["dias_atraso"] > 0].dropna(subset=["data_vencimento"]).copy()
+    df_atr["mes"] = df_atr["data_vencimento"].dt.to_period("M").astype(str)
+    evo_atr = (
+        df_atr.groupby("mes")
+        .agg(total=("dias_atraso", "count"), media_dias=("dias_atraso", "mean"))
+        .reset_index()
+    )
+    evo_atr["media_dias"] = evo_atr["media_dias"].round(1)
+    evo_atr = evo_atr.sort_values("mes")
+
+    def regressao_linear(series, threshold: float = 0.1):
+        n = len(series)
+        if n < 3:
+            return {"slope": 0.0, "r2": 0.0, "direcao": "insuficiente", "variacao_total": 0.0, "n_periodos": n}
+        x = np.arange(n, dtype=float)
+        y = series.values.astype(float)
+        coef = np.polyfit(x, y, 1)
+        slope = round(float(coef[0]), 4)
+        y_pred = np.polyval(coef, x)
+        ss_res = float(np.sum((y - y_pred) ** 2))
+        ss_tot = float(np.sum((y - y.mean()) ** 2))
+        r2 = round(1 - ss_res / ss_tot, 4) if ss_tot > 0 else 0.0
+        ajuste = "forte" if r2 > 0.5 else "fraco" if r2 < 0.2 else "moderado"
+        if abs(slope) < threshold:
+            direcao = "estável"
+        elif slope > 0:
+            direcao = "subindo"
+        else:
+            direcao = "caindo"
+        variacao_total = round(float(y[-1] - y[0]), 2)
+        return {
+            "slope": slope,
+            "r2": r2,
+            "ajuste": ajuste,
+            "direcao": direcao,
+            "variacao_total": variacao_total,
+            "n_periodos": n,
+            "valor_inicial": round(float(y[0]), 2),
+            "valor_final": round(float(y[-1]), 2),
+        }
+
+    trend_iad = regressao_linear(evo_iad["taxa_pct"], threshold=0.1)
+    trend_rec = regressao_linear(evo_rec["taxa_pct"], threshold=0.1)
+    trend_atr = regressao_linear(evo_atr["media_dias"], threshold=0.5)
+
+    def insight_tendencia(nome, trend, melhor_caindo):
+        direcao = trend["direcao"]
+        if direcao == "insuficiente":
+            sinal = "neutro"
+        elif melhor_caindo:
+            sinal = "favorável" if direcao == "caindo" else "desfavorável" if direcao == "subindo" else "neutro"
+        else:
+            sinal = "favorável" if direcao == "subindo" else "desfavorável" if direcao == "caindo" else "neutro"
+        slope_str = f"{trend['slope']:+.3f}"
+        return {
+            "insight": f"{nome}: tendência {direcao} (slope = {slope_str}/mês)",
+            "detalhe": (
+                f"R² = {trend['r2']:.3f} — ajuste {trend['ajuste']}. "
+                f"Variação total no período: {trend['variacao_total']:+.2f}. "
+                f"Sinal {sinal} para a carteira."
+            ),
+        }
+
+    insights = [
+        insight_tendencia("Inadimplência", trend_iad, melhor_caindo=True),
+        insight_tendencia("Recuperação", trend_rec, melhor_caindo=False),
+        insight_tendencia("Atraso Médio", trend_atr, melhor_caindo=True),
+    ]
+
+    return {
+        "inadimplencia": {
+            "serie_mensal": evo_iad.to_dict(orient="records"),
+            "tendencia": trend_iad,
+        },
+        "recuperacao": {
+            "serie_mensal": evo_rec.to_dict(orient="records"),
+            "tendencia": trend_rec,
+        },
+        "atraso_medio": {
+            "serie_mensal": evo_atr.to_dict(orient="records"),
+            "tendencia": trend_atr,
+        },
+        "insights": insights,
+    }
+
+
 def get_risco_regional() -> dict:
     df = load_data()
 

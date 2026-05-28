@@ -3,6 +3,7 @@ import type {
   Kpis, Tendencia, DistribuicaoAtrasos,
   ComportamentoPagamentos, DistribuicaoRegional, StatusCobrancas,
   TaxaInadimplencia, TaxaRecuperacao, AtrasoMedio,
+  RiscoRegionalEstratégico, TendenciaTemporal, PadroesInsights,
 } from "../types/api";
 
 const api = axios.create({ baseURL: "http://localhost:5000/analysis" });
@@ -15,4 +16,7 @@ export const fetchRegional            = () => api.get<DistribuicaoRegional>("/di
 export const fetchStatusCobrancas     = () => api.get<StatusCobrancas>("/status-cobrancas").then(r => r.data);
 export const fetchTaxaInadimplencia  = () => api.get<TaxaInadimplencia>("/taxa-inadimplencia").then(r => r.data);
 export const fetchTaxaRecuperacao    = () => api.get<TaxaRecuperacao>("/taxa-recuperacao").then(r => r.data);
-export const fetchAtrasoMedio        = () => api.get<AtrasoMedio>("/atraso-medio").then(r => r.data);
+export const fetchAtrasoMedio            = () => api.get<AtrasoMedio>("/atraso-medio").then(r => r.data);
+export const fetchRiscoRegional          = () => api.get<RiscoRegionalEstratégico>("/risco-regional-estrategico").then(r => r.data);
+export const fetchTendenciaTemporal      = () => api.get<TendenciaTemporal>("/tendencia-temporal").then(r => r.data);
+export const fetchPadroesInsights        = () => api.get<PadroesInsights>("/padroes-insights").then(r => r.data);

@@ -239,3 +239,150 @@ export interface StatusCobrancas {
   por_regiao: StatusRegiao[];
   insights: Insight[];
 }
+
+// ── Módulo 03 – Padrões e Insights ──────────────────────────────────────────
+
+export interface CrossScoreContemplado {
+  score: string;
+  contemplado: string;
+  total: number;
+  atrasados: number;
+  taxa_pct: number;
+}
+
+export interface CrossScoreForma {
+  score: string;
+  forma_pagamento: string;
+  total: number;
+  atrasados: number;
+  taxa_pct: number;
+}
+
+export interface TopCombinacao {
+  score: string;
+  contemplado: string;
+  forma_pagamento: string;
+  total: number;
+  atrasados: number;
+  taxa_pct: number;
+}
+
+export interface RegiaoCritica {
+  regiao: string;
+  taxa_inadimplencia: number;
+  taxa_recuperacao: number;
+  taxa_judicializacao: number;
+  taxa_em_aberto: number;
+  valor_inadimplente: number;
+  atraso_medio_dias: number;
+  score_criticidade: number;
+  urgencia: "Atenção Crítica" | "Monitoramento Ativo" | "Referência";
+  total_parcelas: number;
+  total_contratos: number;
+}
+
+export interface EficienciaAssessoria {
+  assessoria: string;
+  total_contratos: number;
+  acordos: number;
+  em_aberto: number;
+  insucesso: number;
+  ajuizado: number;
+  taxa_recuperacao: number;
+  taxa_em_aberto: number;
+  taxa_insucesso: number;
+  taxa_judicializacao: number;
+  valor_total: number;
+  valor_recuperado: number;
+  valor_perdido: number;
+  valor_em_aberto: number;
+  score_eficiencia: number;
+}
+
+export interface InsightConsolidado {
+  categoria: string;
+  prioridade: "alta" | "media" | "baixa";
+  insight: string;
+  detalhe: string;
+}
+
+export interface Recomendacao {
+  prioridade: "Crítica" | "Alta" | "Média";
+  area: string;
+  titulo: string;
+  descricao: string;
+  impacto_esperado: string;
+  prazo: string;
+}
+
+export interface PadroesInsights {
+  perfis_alto_risco: {
+    cross_score_contemplado: CrossScoreContemplado[];
+    cross_score_forma: CrossScoreForma[];
+    top_combinacoes: TopCombinacao[];
+  };
+  regioes_criticas: RegiaoCritica[];
+  eficiencia_recuperacao: EficienciaAssessoria[];
+  padroes_temporais: {
+    sazonalidade_mensal: Array<{ mes_num: number; mes_nome: string; total: number; atrasados: number; taxa_pct: number }>;
+    por_dia_semana: Array<{ dia: string; total: number; atrasados: number; taxa_pct: number }>;
+    evolucao_mom: Array<{ mes: string; total: number; atrasados: number; taxa_pct: number; mom_ppt: number | null }>;
+    pico: { mes: string; taxa_pct: number };
+    vale: { mes: string; taxa_pct: number };
+    amplitude_ppt: number;
+  };
+  insights_consolidados: InsightConsolidado[];
+  recomendacoes: Recomendacao[];
+}
+
+// ── Módulo 02 – Risco Regional / Tendência (continuação) ───────────────────
+export interface RiscoRegionalItem {
+  regiao: string;
+  taxa_inadimplencia: number;
+  taxa_recuperacao: number;
+  taxa_judicializacao: number;
+  atraso_medio: number;
+  total_parcelas: number;
+  total_contratos: number;
+  score_risco_composto: number;
+  scores_componentes: {
+    inadimplencia: number;
+    recuperacao_inv: number;
+    judicializacao: number;
+    atraso: number;
+  };
+  nivel_risco: "Alto" | "Médio" | "Baixo";
+}
+
+export interface RiscoRegionalEstratégico {
+  por_regiao: RiscoRegionalItem[];
+  pesos: { inadimplencia: number; recuperacao: number; judicializacao: number; atraso: number };
+  insights: Insight[];
+}
+
+export interface TendenciaMetrica {
+  slope: number;
+  r2: number;
+  ajuste: string;
+  direcao: "subindo" | "caindo" | "estável" | "insuficiente";
+  variacao_total: number;
+  n_periodos: number;
+  valor_inicial: number;
+  valor_final: number;
+}
+
+export interface TendenciaTemporal {
+  inadimplencia: {
+    serie_mensal: Array<{ mes: string; total: number; atrasados: number; taxa_pct: number }>;
+    tendencia: TendenciaMetrica;
+  };
+  recuperacao: {
+    serie_mensal: Array<{ mes: string; total: number; acordos: number; taxa_pct: number }>;
+    tendencia: TendenciaMetrica;
+  };
+  atraso_medio: {
+    serie_mensal: Array<{ mes: string; total: number; media_dias: number }>;
+    tendencia: TendenciaMetrica;
+  };
+  insights: Insight[];
+}

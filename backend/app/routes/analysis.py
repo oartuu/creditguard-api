@@ -5,6 +5,9 @@ from app.services.analysis_service import (
     get_recuperacao,
     get_tendencia,
     get_risco_regional,
+    get_risco_regional_estrategico,
+    get_tendencia_temporal,
+    get_padroes_insights,
     get_estatisticas,
     get_distribuicao_atrasos,
     get_comportamento_pagamentos,
@@ -81,3 +84,18 @@ def taxa_recuperacao():
 @analysis_bp.route("/atraso-medio")
 def atraso_medio():
     return jsonify(get_atraso_medio())
+
+
+@analysis_bp.route("/risco-regional-estrategico")
+def risco_regional_estrategico():
+    return jsonify(get_risco_regional_estrategico())
+
+
+@analysis_bp.route("/tendencia-temporal")
+def tendencia_temporal():
+    return jsonify(get_tendencia_temporal())
+
+
+@analysis_bp.route("/padroes-insights")
+def padroes_insights():
+    return jsonify(get_padroes_insights())

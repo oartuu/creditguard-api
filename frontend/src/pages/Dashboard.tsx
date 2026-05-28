@@ -3,6 +3,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import Sidebar from "../components/Sidebar";
 import AnaliseExploratoriaPage         from "./AnaliseExploratoriaPage";
 import IndicadoresEstrategicosPage     from "./IndicadoresEstrategicosPage";
+import PadroesInsightsPage             from "./PadroesInsightsPage";
 
 function SunIcon() {
   return (
@@ -69,6 +70,7 @@ export default function Dashboard() {
           <div className="max-w-[1100px] mx-auto px-6 py-8">
             {activeModule === "analise-exploratoria"       && <AnaliseExploratoriaPage />}
             {activeModule === "indicadores-estrategicos"  && <IndicadoresEstrategicosPage />}
+            {activeModule === "padroes-insights"          && <PadroesInsightsPage />}
           </div>
         </main>
       </div>
