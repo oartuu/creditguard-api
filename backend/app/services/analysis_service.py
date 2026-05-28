@@ -2320,3 +2320,222 @@ def get_operacao_cobranca() -> dict:
             "valor_carteira_total": round(valor_total, 2),
         },
     }
+
+
+def get_dashboard_final() -> dict:
+    kpis         = get_kpis()
+    inadimplencia = get_taxa_inadimplencia()
+    recuperacao  = get_taxa_recuperacao()
+    atraso       = get_atraso_medio()
+    risco_reg    = get_risco_regional_estrategico()
+    tendencia    = get_tendencia_temporal()
+    diretoria    = get_visao_diretoria()
+
+    taxa_inad   = kpis["taxa_inadimplencia_pct"]
+    taxa_rec    = kpis["taxa_recuperacao_pct"]
+    atraso_med  = kpis["atraso_medio_dias"]
+    val_total   = kpis["valor_inadimplente_total"]
+    val_rec     = kpis["valor_recuperado_estimado"]
+    pct_rec_val = round(val_rec / val_total * 100, 1) if val_total else 0
+
+    trend_inad = tendencia["inadimplencia"]["tendencia"]["direcao"]
+    trend_rec  = tendencia["recuperacao"]["tendencia"]["direcao"]
+    trend_atr  = tendencia["atraso_medio"]["tendencia"]["direcao"]
+
+    # ── status por KPI ───────────────────────────────────────────────────────
+    def status_inad_fn(v):
+        return "critico" if v >= 30 else "alerta" if v >= 20 else "ok"
+
+    def status_rec_fn(v):
+        return "ok" if v >= 50 else "alerta" if v >= 30 else "critico"
+
+    def status_atraso_fn(v):
+        return "ok" if v <= 30 else "alerta" if v <= 60 else "critico"
+
+    regioes_alto = [r for r in risco_reg["por_regiao"] if r["nivel_risco"] == "Alto"]
+    def status_regional_fn():
+        n = len(regioes_alto)
+        return "critico" if n >= 3 else "alerta" if n >= 1 else "ok"
+
+    def status_tendencia_fn():
+        if trend_inad == "subindo" and trend_rec == "caindo":
+            return "critico"
+        if trend_inad == "subindo" or trend_rec == "caindo":
+            return "alerta"
+        return "ok"
+
+    validacoes = [
+        {
+            "kpi": "Taxa de Inadimplência",
+            "modulo": "Módulo 02",
+            "icone": "⚠",
+            "valor": f"{taxa_inad}%",
+            "valor_num": taxa_inad,
+            "threshold_alerta": "≥ 20%",
+            "threshold_critico": "≥ 30%",
+            "status": status_inad_fn(taxa_inad),
+            "tendencia": trend_inad,
+            "variacao_tendencia": round(tendencia["inadimplencia"]["tendencia"]["variacao_total"], 2),
+            "insight": (
+                f"{inadimplencia['indicador_geral']['parcelas_atrasadas']:,} de "
+                f"{inadimplencia['indicador_geral']['total_parcelas']:,} parcelas em atraso"
+            ),
+        },
+        {
+            "kpi": "Taxa de Recuperação",
+            "modulo": "Módulo 02",
+            "icone": "✓",
+            "valor": f"{taxa_rec}%",
+            "valor_num": taxa_rec,
+            "threshold_alerta": "< 30%",
+            "threshold_critico": "< 20%",
+            "status": status_rec_fn(taxa_rec),
+            "tendencia": trend_rec,
+            "variacao_tendencia": round(tendencia["recuperacao"]["tendencia"]["variacao_total"], 2),
+            "insight": (
+                f"{recuperacao['indicador_geral']['contratos_recuperados']:,} acordos de "
+                f"{recuperacao['indicador_geral']['total_contratos']:,} contratos"
+            ),
+        },
+        {
+            "kpi": "Atraso Médio",
+            "modulo": "Módulo 02",
+            "icone": "⏱",
+            "valor": f"{atraso_med} dias",
+            "valor_num": atraso_med,
+            "threshold_alerta": "≥ 31 dias",
+            "threshold_critico": "≥ 61 dias",
+            "status": status_atraso_fn(atraso_med),
+            "tendencia": trend_atr,
+            "variacao_tendencia": round(tendencia["atraso_medio"]["tendencia"]["variacao_total"], 2),
+            "insight": (
+                f"Mediana {atraso['indicador_geral']['mediana_dias']} dias · "
+                f"Máximo {atraso['indicador_geral']['max_dias']} dias"
+            ),
+        },
+        {
+            "kpi": "Risco Regional",
+            "modulo": "Módulo 02",
+            "icone": "🗺",
+            "valor": f"{len(regioes_alto)} região(ns) crítica(s)",
+            "valor_num": len(regioes_alto),
+            "threshold_alerta": "≥ 1 região Alto risco",
+            "threshold_critico": "≥ 3 regiões Alto risco",
+            "status": status_regional_fn(),
+            "tendencia": "estável",
+            "variacao_tendencia": 0.0,
+            "insight": (
+                f"Regiões em Alto risco: {', '.join(r['regiao'] for r in regioes_alto)}"
+                if regioes_alto else "Nenhuma região em nível crítico"
+            ),
+        },
+        {
+            "kpi": "Tendência Temporal",
+            "modulo": "Módulo 04",
+            "icone": "📈",
+            "valor": f"Inadimp. {trend_inad} / Recup. {trend_rec}",
+            "valor_num": 0,
+            "threshold_alerta": "qualquer indicador piora",
+            "threshold_critico": "inadimplência ↑ e recuperação ↓",
+            "status": status_tendencia_fn(),
+            "tendencia": trend_inad,
+            "variacao_tendencia": round(tendencia["inadimplencia"]["tendencia"]["variacao_total"], 2),
+            "insight": (
+                f"Inadimplência {trend_inad} · Recuperação {trend_rec} · Atraso {trend_atr}"
+            ),
+        },
+    ]
+
+    STATUS_RANK = {"ok": 0, "alerta": 1, "critico": 2}
+    max_rank     = max(STATUS_RANK[v["status"]] for v in validacoes)
+    status_geral = ["ok", "alerta", "critico"][max_rank]
+    n_ok      = sum(1 for v in validacoes if v["status"] == "ok")
+    n_alerta  = sum(1 for v in validacoes if v["status"] == "alerta")
+    n_critico = sum(1 for v in validacoes if v["status"] == "critico")
+
+    # ── material de apresentação ─────────────────────────────────────────────
+    pior_regiao   = max(risco_reg["por_regiao"], key=lambda x: x["score_risco_composto"])
+    melhor_regiao = max(risco_reg["por_regiao"], key=lambda x: x["taxa_recuperacao"])
+
+    pontos_forca = []
+    pontos_atencao = []
+
+    if taxa_rec >= 30:
+        pontos_forca.append(f"Taxa de recuperação de {taxa_rec}% — acordos extrajudiciais em operação")
+    else:
+        pontos_atencao.append(f"Baixa taxa de recuperação ({taxa_rec}%) — necessário revisar estratégia de cobrança")
+
+    if trend_inad == "caindo":
+        pontos_forca.append(f"Tendência de queda na inadimplência ({tendencia['inadimplencia']['tendencia']['variacao_total']:+.2f} p.p.)")
+    elif trend_inad == "subindo":
+        pontos_atencao.append(f"Tendência de alta na inadimplência ({tendencia['inadimplencia']['tendencia']['variacao_total']:+.2f} p.p.) — requer atenção")
+
+    if trend_rec == "subindo":
+        pontos_forca.append(f"Taxa de recuperação em crescimento ({tendencia['recuperacao']['tendencia']['variacao_total']:+.2f} p.p.)")
+
+    pontos_forca.append(f"Região {melhor_regiao['regiao']} lidera recuperação com {melhor_regiao['taxa_recuperacao']}%")
+    pontos_atencao.append(f"Região {pior_regiao['regiao']} com maior risco composto ({pior_regiao['score_risco_composto']}/100)")
+    pontos_atencao.append(
+        f"R$ {(val_total - val_rec) / 1e6:.1f}M ainda sem resolução — maior oportunidade de recuperação"
+    )
+
+    n_em_aberto = kpis["total_contratos_cobranca"] - kpis["acordos_firmados"]
+    recomendacoes = [
+        {
+            "prioridade": "Alta",
+            "titulo": "Acelerar negociação dos contratos Em Aberto",
+            "descricao": (
+                f"{n_em_aberto:,} contratos sem resolução. "
+                "Priorizar abordagem proativa antes de judicialização."
+            ),
+            "impacto": f"Potencial de recuperar R$ {(val_total - val_rec) / 1e6:.1f}M adicionais",
+        },
+        {
+            "prioridade": "Alta",
+            "titulo": "Redistribuir carteira para assessorias de alto desempenho",
+            "descricao": (
+                "Concentrar contratos nas assessorias com maior score de eficiência "
+                "para aumentar a taxa geral de recuperação."
+            ),
+            "impacto": "Estimativa de ganho de 3–5 p.p. na taxa de recuperação",
+        },
+        {
+            "prioridade": "Média",
+            "titulo": f"Monitoramento intensivo da região {pior_regiao['regiao']}",
+            "descricao": (
+                f"Score de risco composto {pior_regiao['score_risco_composto']}/100. "
+                f"Taxa de inadimplência de {pior_regiao['taxa_inadimplencia']}%."
+            ),
+            "impacto": "Redução do risco de concentração regional e perda de valor",
+        },
+    ]
+
+    return {
+        "validacoes": validacoes,
+        "status_geral": status_geral,
+        "resumo_validacao": {
+            "ok": n_ok, "alerta": n_alerta, "critico": n_critico, "total": len(validacoes),
+        },
+        "saude_carteira": diretoria["saude_carteira"],
+        "visao_consolidada": diretoria["visao_consolidada"],
+        "alertas_executivos": diretoria["alertas_executivos"],
+        "material_apresentacao": {
+            "kpis_principais": {
+                "taxa_inadimplencia": taxa_inad,
+                "taxa_recuperacao": taxa_rec,
+                "atraso_medio_dias": atraso_med,
+                "valor_inadimplente": round(val_total, 2),
+                "valor_recuperado": round(val_rec, 2),
+                "pct_recuperacao_valor": pct_rec_val,
+                "total_contratos": kpis["total_contratos_cobranca"],
+                "acordos_firmados": kpis["acordos_firmados"],
+                "total_parcelas": kpis["total_pagamentos"],
+            },
+            "pontos_forca": pontos_forca,
+            "pontos_atencao": pontos_atencao,
+            "recomendacoes": recomendacoes,
+            "risco_regional_resumo": sorted(
+                risco_reg["por_regiao"], key=lambda x: x["score_risco_composto"], reverse=True
+            )[:5],
+        },
+    }

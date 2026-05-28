@@ -4,7 +4,7 @@ import type {
   ComportamentoPagamentos, DistribuicaoRegional, StatusCobrancas,
   TaxaInadimplencia, TaxaRecuperacao, AtrasoMedio,
   RiscoRegionalEstratégico, TendenciaTemporal, PadroesInsights,
-  VisaoDiretoria, VisaoFinanceira, OperacaoCobranca,
+  VisaoDiretoria, VisaoFinanceira, OperacaoCobranca, DashboardFinal,
 } from "../types/api";
 
 const api = axios.create({ baseURL: "http://localhost:5000/analysis" });
@@ -24,3 +24,4 @@ export const fetchPadroesInsights        = () => api.get<PadroesInsights>("/padr
 export const fetchVisaoDiretoria         = () => api.get<VisaoDiretoria>("/visao-diretoria").then(r => r.data);
 export const fetchVisaoFinanceira        = () => api.get<VisaoFinanceira>("/visao-financeira").then(r => r.data);
 export const fetchOperacaoCobranca       = () => api.get<OperacaoCobranca>("/operacao-cobranca").then(r => r.data);
+export const fetchDashboardFinal         = () => api.get<DashboardFinal>("/dashboard-final").then(r => r.data);

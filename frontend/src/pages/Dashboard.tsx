@@ -7,6 +7,7 @@ import PadroesInsightsPage             from "./PadroesInsightsPage";
 import VisaoDiretoriaPage              from "./VisaoDiretoriaPage";
 import VisaoFinanceiraPage             from "./VisaoFinanceiraPage";
 import OperacaoCobrancaPage            from "./OperacaoCobrancaPage";
+import DashboardFinalPage              from "./DashboardFinalPage";
 
 function SunIcon() {
   return (
@@ -77,6 +78,7 @@ export default function Dashboard() {
             {activeModule === "visao-diretoria"           && <VisaoDiretoriaPage />}
             {activeModule === "visao-financeira"          && <VisaoFinanceiraPage />}
             {activeModule === "operacao-cobranca"         && <OperacaoCobrancaPage />}
+            {activeModule === "dashboard-final"           && <DashboardFinalPage />}
           </div>
         </main>
       </div>

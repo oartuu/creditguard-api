@@ -469,6 +469,65 @@ export interface VisaoFinanceira {
   evolucao_financeira: VFEvolucaoMes[];
 }
 
+// ── Módulo 07 – Dashboard Final ────────────────────────────────────────────
+
+export interface DFValidacaoKpi {
+  kpi: string;
+  modulo: string;
+  icone: string;
+  valor: string;
+  valor_num: number;
+  threshold_alerta: string;
+  threshold_critico: string;
+  status: "ok" | "alerta" | "critico";
+  tendencia: string;
+  variacao_tendencia: number;
+  insight: string;
+}
+
+export interface DFRecomendacao {
+  prioridade: "Alta" | "Média" | "Baixa";
+  titulo: string;
+  descricao: string;
+  impacto: string;
+}
+
+export interface DFRiscoRegional {
+  regiao: string;
+  nivel_risco: "Alto" | "Médio" | "Baixo";
+  score_risco_composto: number;
+  taxa_inadimplencia: number;
+  taxa_recuperacao: number;
+  taxa_judicializacao: number;
+  atraso_medio: number;
+}
+
+export interface DashboardFinal {
+  validacoes: DFValidacaoKpi[];
+  status_geral: "ok" | "alerta" | "critico";
+  resumo_validacao: { ok: number; alerta: number; critico: number; total: number };
+  saude_carteira: SaudeCarteira;
+  visao_consolidada: VisaoConsolidadaRow[];
+  alertas_executivos: AlertaExecutivo[];
+  material_apresentacao: {
+    kpis_principais: {
+      taxa_inadimplencia: number;
+      taxa_recuperacao: number;
+      atraso_medio_dias: number;
+      valor_inadimplente: number;
+      valor_recuperado: number;
+      pct_recuperacao_valor: number;
+      total_contratos: number;
+      acordos_firmados: number;
+      total_parcelas: number;
+    };
+    pontos_forca: string[];
+    pontos_atencao: string[];
+    recomendacoes: DFRecomendacao[];
+    risco_regional_resumo: DFRiscoRegional[];
+  };
+}
+
 // ── Módulo 06 – Operação de Cobrança ───────────────────────────────────────
 
 export interface OCAbertoRegiao {
