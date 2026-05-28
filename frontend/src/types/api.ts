@@ -469,6 +469,89 @@ export interface VisaoFinanceira {
   evolucao_financeira: VFEvolucaoMes[];
 }
 
+// ── Módulo 06 – Operação de Cobrança ───────────────────────────────────────
+
+export interface OCAbertoRegiao {
+  regiao: string;
+  total: number;
+  valor_total: number;
+}
+
+export interface OCAbertoAssessoria {
+  assessoria: string;
+  total: number;
+  valor_total: number;
+}
+
+export interface OCRecuperadoRegiao {
+  regiao: string;
+  total: number;
+  acordos: number;
+  taxa_pct: number;
+}
+
+export interface OCStatusItem {
+  status: string;
+  total: number;
+  pct: number;
+  valor: number;
+  pct_valor: number;
+  cor: string;
+}
+
+export interface OCDesempenhoAssessoria {
+  ranking: number;
+  assessoria: string;
+  total_contratos: number;
+  acordos: number;
+  em_aberto: number;
+  insucesso: number;
+  ajuizado: number;
+  taxa_recuperacao_pct: number;
+  taxa_em_aberto_pct: number;
+  taxa_insucesso_pct: number;
+  taxa_ajuizado_pct: number;
+  valor_total: number;
+  valor_recuperado: number;
+  valor_em_aberto: number;
+  score_desempenho: number;
+}
+
+export interface OCEvolucaoMes {
+  mes: string;
+  total: number;
+  acordos: number;
+  em_aberto: number;
+  insucesso: number;
+  ajuizado: number;
+  taxa_recuperacao_pct: number;
+}
+
+export interface OperacaoCobranca {
+  contratos_aberto: {
+    total: number;
+    pct_total: number;
+    valor_total: number;
+    pct_valor: number;
+    por_regiao: OCAbertoRegiao[];
+    por_assessoria: OCAbertoAssessoria[];
+  };
+  contratos_recuperados: {
+    total: number;
+    pct_total: number;
+    valor_total: number;
+    taxa_recuperacao_valor_pct: number;
+    por_regiao: OCRecuperadoRegiao[];
+  };
+  status_cobrancas: OCStatusItem[];
+  desempenho_operacional: OCDesempenhoAssessoria[];
+  evolucao_mensal: OCEvolucaoMes[];
+  totais: {
+    total_contratos: number;
+    valor_carteira_total: number;
+  };
+}
+
 export interface TendenciaTemporal {
   inadimplencia: {
     serie_mensal: Array<{ mes: string; total: number; atrasados: number; taxa_pct: number }>;

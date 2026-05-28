@@ -6,6 +6,7 @@ import IndicadoresEstrategicosPage     from "./IndicadoresEstrategicosPage";
 import PadroesInsightsPage             from "./PadroesInsightsPage";
 import VisaoDiretoriaPage              from "./VisaoDiretoriaPage";
 import VisaoFinanceiraPage             from "./VisaoFinanceiraPage";
+import OperacaoCobrancaPage            from "./OperacaoCobrancaPage";
 
 function SunIcon() {
   return (
@@ -75,6 +76,7 @@ export default function Dashboard() {
             {activeModule === "padroes-insights"          && <PadroesInsightsPage />}
             {activeModule === "visao-diretoria"           && <VisaoDiretoriaPage />}
             {activeModule === "visao-financeira"          && <VisaoFinanceiraPage />}
+            {activeModule === "operacao-cobranca"         && <OperacaoCobrancaPage />}
           </div>
         </main>
       </div>

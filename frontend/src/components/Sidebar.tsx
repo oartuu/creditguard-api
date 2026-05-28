@@ -41,6 +41,14 @@ const MODULES = [
     available: true,
     icon: <FinanceiroIcon />,
   },
+  {
+    id: "operacao-cobranca",
+    num: "06",
+    label: "Operação de Cobrança",
+    sub: "Status & Desempenho",
+    available: true,
+    icon: <CobrancaIcon />,
+  },
 ];
 
 function ChartBarIcon() {
@@ -85,6 +93,14 @@ function FinanceiroIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="1" x2="12" y2="23" />
       <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  );
+}
+
+function CobrancaIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
     </svg>
   );
 }

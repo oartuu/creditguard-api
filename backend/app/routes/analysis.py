@@ -18,6 +18,7 @@ from app.services.analysis_service import (
     get_atraso_medio,
     get_visao_diretoria,
     get_visao_financeira,
+    get_operacao_cobranca,
 )
 
 analysis_bp = Blueprint("analysis", __name__, url_prefix="/analysis")
@@ -111,3 +112,8 @@ def visao_diretoria():
 @analysis_bp.route("/visao-financeira")
 def visao_financeira():
     return jsonify(get_visao_financeira())
+
+
+@analysis_bp.route("/operacao-cobranca")
+def operacao_cobranca():
+    return jsonify(get_operacao_cobranca())

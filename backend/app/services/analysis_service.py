@@ -2166,3 +2166,157 @@ def get_risco_regional() -> dict:
         "inadimplencia_por_regiao": inadimplencia_regional.to_dict(orient="records"),
         "valor_inadimplente_por_regiao": valor_regional.to_dict(orient="records"),
     }
+
+
+def get_operacao_cobranca() -> dict:
+    df = load_data()
+
+    contratos = df.drop_duplicates("id_contrato").copy()
+    contratos["nome_assessoria_norm"] = contratos["nome_assessoria"].str.strip().str.title()
+
+    total = len(contratos)
+    valor_total = float(contratos["valor_inadimplente_inicial"].sum())
+    STATUS = ["Acordo Firmado", "Em Aberto", "Insucesso", "Ajuizado"]
+    STATUS_COLORS = {
+        "Acordo Firmado": "#22c55e",
+        "Em Aberto":      "#f97316",
+        "Insucesso":      "#ef4444",
+        "Ajuizado":       "#8b5cf6",
+    }
+
+    # ── 1. Contratos em aberto ────────────────────────────────────────────────
+    em_aberto_df = contratos[contratos["status_cobranca"] == "Em Aberto"]
+    n_aberto = len(em_aberto_df)
+    val_aberto = round(float(em_aberto_df["valor_inadimplente_inicial"].sum()), 2)
+
+    aberto_por_regiao = (
+        em_aberto_df.groupby("regiao_cliente")["valor_inadimplente_inicial"]
+        .agg(total="count", valor="sum")
+        .reset_index()
+        .rename(columns={"regiao_cliente": "regiao", "valor": "valor_total"})
+        .sort_values("valor_total", ascending=False)
+        .round(2)
+        .to_dict(orient="records")
+    )
+
+    aberto_por_assessoria = (
+        em_aberto_df.groupby("nome_assessoria_norm")["valor_inadimplente_inicial"]
+        .agg(total="count", valor="sum")
+        .reset_index()
+        .rename(columns={"nome_assessoria_norm": "assessoria", "valor": "valor_total"})
+        .sort_values("valor_total", ascending=False)
+        .round(2)
+        .to_dict(orient="records")
+    )
+
+    # ── 2. Contratos recuperados ──────────────────────────────────────────────
+    acordos_df = contratos[contratos["status_cobranca"] == "Acordo Firmado"]
+    n_acordos = len(acordos_df)
+    val_acordos = round(float(acordos_df["valor_inadimplente_inicial"].sum()), 2)
+    taxa_rec = round(n_acordos / total * 100, 2) if total else 0
+    taxa_rec_valor = round(val_acordos / valor_total * 100, 2) if valor_total else 0
+
+    acordos_por_regiao = (
+        contratos.groupby("regiao_cliente")
+        .agg(
+            total=("status_cobranca", "count"),
+            acordos=("status_cobranca", lambda x: (x == "Acordo Firmado").sum()),
+        )
+        .reset_index()
+        .rename(columns={"regiao_cliente": "regiao"})
+    )
+    acordos_por_regiao["taxa_pct"] = (acordos_por_regiao["acordos"] / acordos_por_regiao["total"] * 100).round(2)
+    acordos_por_regiao_list = acordos_por_regiao.sort_values("taxa_pct", ascending=False).to_dict(orient="records")
+
+    # ── 3. Status das cobranças ───────────────────────────────────────────────
+    distribuicao_status = []
+    for status in STATUS:
+        n_s = int((contratos["status_cobranca"] == status).sum())
+        val_s = round(float(contratos[contratos["status_cobranca"] == status]["valor_inadimplente_inicial"].sum()), 2)
+        distribuicao_status.append({
+            "status": status,
+            "total": n_s,
+            "pct": round(n_s / total * 100, 2) if total else 0,
+            "valor": val_s,
+            "pct_valor": round(val_s / valor_total * 100, 2) if valor_total else 0,
+            "cor": STATUS_COLORS[status],
+        })
+
+    # ── 4. Desempenho operacional por assessoria ──────────────────────────────
+    desempenho = []
+    for ass, grupo in contratos.groupby("nome_assessoria_norm"):
+        n = len(grupo)
+        n_ac = int((grupo["status_cobranca"] == "Acordo Firmado").sum())
+        n_ab = int((grupo["status_cobranca"] == "Em Aberto").sum())
+        n_in = int((grupo["status_cobranca"] == "Insucesso").sum())
+        n_aj = int((grupo["status_cobranca"] == "Ajuizado").sum())
+        val_tot = round(float(grupo["valor_inadimplente_inicial"].sum()), 2)
+        val_rec = round(float(grupo[grupo["status_cobranca"] == "Acordo Firmado"]["valor_inadimplente_inicial"].sum()), 2)
+        val_ab = round(float(grupo[grupo["status_cobranca"] == "Em Aberto"]["valor_inadimplente_inicial"].sum()), 2)
+        taxa_r = round(n_ac / n * 100, 2) if n else 0
+        taxa_a = round(n_ab / n * 100, 2) if n else 0
+        taxa_i = round(n_in / n * 100, 2) if n else 0
+        taxa_j = round(n_aj / n * 100, 2) if n else 0
+        score = round(taxa_r * (1 - taxa_j / 100), 2)
+        desempenho.append({
+            "assessoria": ass,
+            "total_contratos": n,
+            "acordos": n_ac,
+            "em_aberto": n_ab,
+            "insucesso": n_in,
+            "ajuizado": n_aj,
+            "taxa_recuperacao_pct": taxa_r,
+            "taxa_em_aberto_pct": taxa_a,
+            "taxa_insucesso_pct": taxa_i,
+            "taxa_ajuizado_pct": taxa_j,
+            "valor_total": val_tot,
+            "valor_recuperado": val_rec,
+            "valor_em_aberto": val_ab,
+            "score_desempenho": score,
+        })
+    desempenho.sort(key=lambda x: x["score_desempenho"], reverse=True)
+    for i, d in enumerate(desempenho):
+        d["ranking"] = i + 1
+
+    # ── 5. Evolução mensal ────────────────────────────────────────────────────
+    contratos_v = contratos.dropna(subset=["data_envio_assessoria"]).copy()
+    contratos_v["mes"] = contratos_v["data_envio_assessoria"].dt.to_period("M").astype(str)
+    evo = (
+        contratos_v.groupby("mes")
+        .agg(
+            total=("status_cobranca", "count"),
+            acordos=("status_cobranca", lambda x: (x == "Acordo Firmado").sum()),
+            em_aberto=("status_cobranca", lambda x: (x == "Em Aberto").sum()),
+            insucesso=("status_cobranca", lambda x: (x == "Insucesso").sum()),
+            ajuizado=("status_cobranca", lambda x: (x == "Ajuizado").sum()),
+        )
+        .reset_index()
+        .sort_values("mes")
+    )
+    evo["taxa_recuperacao_pct"] = (evo["acordos"] / evo["total"] * 100).round(2)
+    evolucao_mensal = evo.to_dict(orient="records")
+
+    return {
+        "contratos_aberto": {
+            "total": n_aberto,
+            "pct_total": round(n_aberto / total * 100, 2) if total else 0,
+            "valor_total": val_aberto,
+            "pct_valor": round(val_aberto / valor_total * 100, 2) if valor_total else 0,
+            "por_regiao": aberto_por_regiao,
+            "por_assessoria": aberto_por_assessoria,
+        },
+        "contratos_recuperados": {
+            "total": n_acordos,
+            "pct_total": taxa_rec,
+            "valor_total": val_acordos,
+            "taxa_recuperacao_valor_pct": taxa_rec_valor,
+            "por_regiao": acordos_por_regiao_list,
+        },
+        "status_cobrancas": distribuicao_status,
+        "desempenho_operacional": desempenho,
+        "evolucao_mensal": evolucao_mensal,
+        "totais": {
+            "total_contratos": total,
+            "valor_carteira_total": round(valor_total, 2),
+        },
+    }
