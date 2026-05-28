@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import type { ComportamentoPagamentos } from "../types/api";
 import ChartCard from "./ChartCard";
+import { useChartTheme } from "../contexts/ThemeContext";
 
 const TIPO_CORES: Record<string, string> = {
   pago_integral: "#22c55e",
@@ -21,6 +22,7 @@ interface ContempladoPoint { situacao: string; taxa: number; fill: string; }
 interface FormaPoint { forma: string; taxa: number; }
 
 export default function ComportamentoPagamentosChart({ data }: { data: ComportamentoPagamentos | null }) {
+  const ct = useChartTheme();
   if (!data) return null;
 
   const pieData: PiePoint[] = Object.entries(data.tipos_pagamento ?? {})
@@ -52,10 +54,10 @@ export default function ComportamentoPagamentosChart({ data }: { data: Comportam
               {pieData.map((d, i) => <Cell key={i} fill={d.fill} />)}
             </Pie>
             <Tooltip
-              contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8 }}
+              contentStyle={{ background: ct.tooltip.background, border: `1px solid ${ct.tooltip.border}`, borderRadius: 8 }}
               formatter={(v, _n, p) => [`${(v as number).toLocaleString("pt-BR")} (${p.payload.pct}%)`, p.payload.name]}
             />
-            <Legend wrapperStyle={{ color: "#94a3b8", fontSize: 12 }} />
+            <Legend wrapperStyle={{ color: ct.legend, fontSize: 12 }} />
           </PieChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -63,11 +65,11 @@ export default function ComportamentoPagamentosChart({ data }: { data: Comportam
       <ChartCard title="Contemplados vs Não Contemplados" subtitle="Impacto do indicador de contemplação na inadimplência">
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={contempladoData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="situacao" tick={{ fill: "#94a3b8", fontSize: 12 }} />
-            <YAxis domain={[15, 32]} tickFormatter={(v: number) => `${v}%`} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+            <XAxis dataKey="situacao" tick={{ fill: ct.tick, fontSize: 12 }} />
+            <YAxis domain={[15, 32]} tickFormatter={(v: number) => `${v}%`} tick={{ fill: ct.tick, fontSize: 11 }} />
             <Tooltip
-              contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8 }}
+              contentStyle={{ background: ct.tooltip.background, border: `1px solid ${ct.tooltip.border}`, borderRadius: 8 }}
               formatter={(v) => [`${v}%`, "Inadimplência"]}
             />
             <Bar dataKey="taxa" name="Inadimplência" radius={[6, 6, 0, 0]}>
@@ -80,11 +82,11 @@ export default function ComportamentoPagamentosChart({ data }: { data: Comportam
       <ChartCard title="Inadimplência por Forma de Pagamento" subtitle="Boleto, Pix e Débito Automático">
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={formaData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="forma" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-            <YAxis domain={[24.5, 26.5]} tickFormatter={(v: number) => `${v}%`} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+            <XAxis dataKey="forma" tick={{ fill: ct.tick, fontSize: 11 }} />
+            <YAxis domain={[24.5, 26.5]} tickFormatter={(v: number) => `${v}%`} tick={{ fill: ct.tick, fontSize: 11 }} />
             <Tooltip
-              contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8 }}
+              contentStyle={{ background: ct.tooltip.background, border: `1px solid ${ct.tooltip.border}`, borderRadius: 8 }}
               formatter={(v) => [`${v}%`, "Inadimplência"]}
             />
             <Bar dataKey="taxa" name="Inadimplência" fill="#3b82f6" radius={[4, 4, 0, 0]} />

@@ -6,9 +6,9 @@ interface Props {
 
 export default function ChartCard({ title, subtitle, children }: Props) {
   return (
-    <div className="bg-slate-800 rounded-xl p-6 flex flex-col gap-3">
+    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 flex flex-col gap-3 transition-colors">
       <div>
-        <h3 className="m-0 text-slate-100 text-sm font-semibold">{title}</h3>
+        <h3 className="m-0 text-slate-900 dark:text-slate-100 text-sm font-semibold">{title}</h3>
         {subtitle && <p className="mt-1 text-slate-500 text-xs">{subtitle}</p>}
       </div>
       {children}

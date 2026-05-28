@@ -28,10 +28,10 @@ interface CardProps {
 
 function Card({ label, value, sub, accent }: CardProps) {
   return (
-    <div className={`bg-slate-800 rounded-xl p-6 flex flex-col gap-1.5 border-l-4 ${BORDER_COLORS[accent]}`}>
-      <span className="text-slate-400 text-xs font-medium uppercase tracking-widest">{label}</span>
-      <span className="text-slate-100 text-3xl font-bold">{value}</span>
-      {sub && <span className="text-slate-500 text-xs">{sub}</span>}
+    <div className={`bg-white dark:bg-slate-800 rounded-xl p-6 flex flex-col gap-1.5 border-l-4 transition-colors ${BORDER_COLORS[accent]}`}>
+      <span className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest">{label}</span>
+      <span className="text-slate-900 dark:text-slate-100 text-3xl font-bold">{value}</span>
+      {sub && <span className="text-slate-400 dark:text-slate-500 text-xs">{sub}</span>}
     </div>
   );
 }

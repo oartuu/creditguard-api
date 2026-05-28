@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { StatusCobrancas } from "../types/api";
 import ChartCard from "./ChartCard";
+import { useChartTheme } from "../contexts/ThemeContext";
 
 const COLORS: Record<string, string> = {
   "Acordo Firmado": "#22c55e",
@@ -23,6 +24,7 @@ interface ChartPoint {
 }
 
 export default function StatusCobrancasChart({ data }: { data: StatusCobrancas | null }) {
+  const ct = useChartTheme();
   if (!data) return null;
 
   const chartData = data.visao_geral?.map((d): ChartPoint => ({
@@ -42,13 +44,13 @@ export default function StatusCobrancasChart({ data }: { data: StatusCobrancas |
             {chartData?.map((d, i) => <Cell key={i} fill={d.fill} />)}
           </Pie>
           <Tooltip
-            contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8 }}
+            contentStyle={{ background: ct.tooltip.background, border: `1px solid ${ct.tooltip.border}`, borderRadius: 8 }}
             formatter={(v, _n, p) => [
               `${(v as number).toLocaleString("pt-BR")} contratos (${p.payload.pct}%) — ${fmtBRL(p.payload.valor as number)}`,
               p.payload.name,
             ]}
           />
-          <Legend wrapperStyle={{ color: "#94a3b8", fontSize: 12 }} />
+          <Legend wrapperStyle={{ color: ct.legend, fontSize: 12 }} />
         </PieChart>
       </ResponsiveContainer>
     </ChartCard>

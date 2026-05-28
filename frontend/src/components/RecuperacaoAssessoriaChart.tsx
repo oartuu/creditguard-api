@@ -1,6 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { StatusCobrancas } from "../types/api";
 import ChartCard from "./ChartCard";
+import { useChartTheme } from "../contexts/ThemeContext";
 
 interface ChartPoint {
   assessoria: string;
@@ -11,6 +12,7 @@ interface ChartPoint {
 }
 
 export default function RecuperacaoAssessoriaChart({ data }: { data: StatusCobrancas | null }) {
+  const ct = useChartTheme();
   if (!data) return null;
 
   const chartData = data.por_assessoria?.map((d): ChartPoint => ({
@@ -25,14 +27,14 @@ export default function RecuperacaoAssessoriaChart({ data }: { data: StatusCobra
     <ChartCard title="Desempenho por Assessoria" subtitle="Distribuição percentual de status por assessoria de cobrança">
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 90 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-          <XAxis type="number" tickFormatter={(v: number) => `${v}%`} tick={{ fill: "#94a3b8", fontSize: 11 }} />
-          <YAxis type="category" dataKey="assessoria" tick={{ fill: "#94a3b8", fontSize: 11 }} width={90} />
+          <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+          <XAxis type="number" tickFormatter={(v: number) => `${v}%`} tick={{ fill: ct.tick, fontSize: 11 }} />
+          <YAxis type="category" dataKey="assessoria" tick={{ fill: ct.tick, fontSize: 11 }} width={90} />
           <Tooltip
-            contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8 }}
+            contentStyle={{ background: ct.tooltip.background, border: `1px solid ${ct.tooltip.border}`, borderRadius: 8 }}
             formatter={(v) => [`${v}%`]}
           />
-          <Legend wrapperStyle={{ color: "#94a3b8", fontSize: 12 }} />
+          <Legend wrapperStyle={{ color: ct.legend, fontSize: 12 }} />
           <Bar dataKey="Acordo Firmado" stackId="a" fill="#22c55e" />
           <Bar dataKey="Em Aberto"      stackId="a" fill="#f97316" />
           <Bar dataKey="Insucesso"      stackId="a" fill="#ef4444" />
