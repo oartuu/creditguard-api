@@ -125,6 +125,38 @@ export interface StatusRegiao {
   pct_ajuizado: number;
 }
 
+export interface TaxaInadimplenciaGeral {
+  taxa_pct: number;
+  total_parcelas: number;
+  parcelas_atrasadas: number;
+  parcelas_em_dia: number;
+  atraso_medio_dias: number;
+  variacao_periodo_ppt: number;
+}
+
+export interface TaxaMensal {
+  mes: string;
+  total: number;
+  atrasados: number;
+  taxa_pct: number;
+}
+
+export interface TaxaSegmento {
+  total: number;
+  atrasados: number;
+  taxa_pct: number;
+}
+
+export interface TaxaInadimplencia {
+  indicador_geral: TaxaInadimplenciaGeral;
+  evolucao_mensal: TaxaMensal[];
+  por_regiao: Array<TaxaSegmento & { regiao: string }>;
+  por_faixa_risco: Array<TaxaSegmento & { faixa: string }>;
+  por_forma_pagamento: Array<TaxaSegmento & { forma: string }>;
+  por_contemplado: Array<TaxaSegmento & { contemplado: string }>;
+  insights: Insight[];
+}
+
 export interface StatusCobrancas {
   visao_geral: StatusVisaoGeral[];
   por_assessoria: StatusAssessoria[];

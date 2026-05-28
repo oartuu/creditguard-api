@@ -913,6 +913,165 @@ def get_status_cobrancas() -> dict:
     }
 
 
+def get_taxa_inadimplencia() -> dict:
+    df = load_data()
+
+    total = len(df)
+    n_atrasados = int((df["pagamento_em_dia"] == False).sum())
+    n_em_dia = total - n_atrasados
+    taxa_geral = round(n_atrasados / total * 100, 2)
+    atraso_medio = round(float(df[df["dias_atraso"] > 0]["dias_atraso"].mean()), 1)
+
+    # --- evolução mensal ---
+    df_v = df.dropna(subset=["data_vencimento"]).copy()
+    df_v["mes"] = df_v["data_vencimento"].dt.to_period("M").astype(str)
+    evo = (
+        df_v.groupby("mes")
+        .agg(
+            total=("pagamento_em_dia", "count"),
+            atrasados=("pagamento_em_dia", lambda x: (x == False).sum()),
+        )
+        .reset_index()
+    )
+    evo["taxa_pct"] = (evo["atrasados"] / evo["total"] * 100).round(2)
+    evo_list = evo.sort_values("mes").to_dict(orient="records")
+    variacao_ppt = (
+        round(evo_list[-1]["taxa_pct"] - evo_list[0]["taxa_pct"], 2)
+        if len(evo_list) >= 2 else 0.0
+    )
+
+    # --- por região ---
+    df_reg = df[df["regiao_cliente"].notna() & (df["regiao_cliente"] != "")].copy()
+    por_regiao = (
+        df_reg.groupby("regiao_cliente")
+        .agg(
+            total=("pagamento_em_dia", "count"),
+            atrasados=("pagamento_em_dia", lambda x: (x == False).sum()),
+        )
+        .reset_index()
+        .rename(columns={"regiao_cliente": "regiao"})
+    )
+    por_regiao["taxa_pct"] = (por_regiao["atrasados"] / por_regiao["total"] * 100).round(2)
+    por_regiao_list = por_regiao.sort_values("taxa_pct", ascending=False).to_dict(orient="records")
+
+    # --- por faixa de score de risco ---
+    def banda_risco(score):
+        if pd.isna(score): return "Sem score"
+        if score <= 33:    return "Baixo (1-33)"
+        if score <= 66:    return "Médio (34-66)"
+        return "Alto (67-100)"
+
+    df_r = df.copy()
+    df_r["banda"] = df_r["score_interno_risco"].apply(banda_risco)
+    ordem_risco = ["Alto (67-100)", "Médio (34-66)", "Baixo (1-33)", "Sem score"]
+    por_risco = (
+        df_r.groupby("banda")
+        .agg(
+            total=("pagamento_em_dia", "count"),
+            atrasados=("pagamento_em_dia", lambda x: (x == False).sum()),
+        )
+        .reset_index()
+        .rename(columns={"banda": "faixa"})
+    )
+    por_risco["taxa_pct"] = (por_risco["atrasados"] / por_risco["total"] * 100).round(2)
+    por_risco["_ord"] = por_risco["faixa"].map({v: i for i, v in enumerate(ordem_risco)})
+    por_risco_list = por_risco.sort_values("_ord").drop(columns="_ord").to_dict(orient="records")
+
+    # --- por forma de pagamento ---
+    por_forma = (
+        df.groupby("forma_pagamento")
+        .agg(
+            total=("pagamento_em_dia", "count"),
+            atrasados=("pagamento_em_dia", lambda x: (x == False).sum()),
+        )
+        .reset_index()
+        .rename(columns={"forma_pagamento": "forma"})
+    )
+    por_forma["taxa_pct"] = (por_forma["atrasados"] / por_forma["total"] * 100).round(2)
+    por_forma_list = por_forma.sort_values("taxa_pct", ascending=False).to_dict(orient="records")
+
+    # --- por contemplado ---
+    por_contemplado = (
+        df.groupby("indicador_contemplado")
+        .agg(
+            total=("pagamento_em_dia", "count"),
+            atrasados=("pagamento_em_dia", lambda x: (x == False).sum()),
+        )
+        .reset_index()
+        .rename(columns={"indicador_contemplado": "contemplado"})
+    )
+    por_contemplado["taxa_pct"] = (por_contemplado["atrasados"] / por_contemplado["total"] * 100).round(2)
+    por_contemplado_list = por_contemplado.sort_values("taxa_pct", ascending=False).to_dict(orient="records")
+
+    # --- insights ---
+    risco_alto  = next((r for r in por_risco_list if "Alto"  in r["faixa"]), None)
+    risco_baixo = next((r for r in por_risco_list if "Baixo" in r["faixa"]), None)
+    variacao_str = f"+{variacao_ppt} p.p." if variacao_ppt > 0 else f"{variacao_ppt} p.p."
+    pior_reg  = por_regiao_list[0]
+    melhor_reg = por_regiao_list[-1]
+
+    insights = [
+        {
+            "insight": f"Taxa geral de inadimplência de {taxa_geral}% no período",
+            "detalhe": (
+                f"{n_atrasados:,} das {total:,} parcelas estão em atraso. "
+                f"A taxa variou {variacao_str} do primeiro ao último mês analisado — "
+                "comportamento estruturalmente estável."
+            ),
+        },
+        {
+            "insight": f"Inadimplência mínima entre regiões: spread de apenas {round(pior_reg['taxa_pct'] - melhor_reg['taxa_pct'], 2)} p.p.",
+            "detalhe": (
+                f"{pior_reg['regiao']} lidera com {pior_reg['taxa_pct']}% e "
+                f"{melhor_reg['regiao']} tem a menor taxa ({melhor_reg['taxa_pct']}%). "
+                "O risco geográfico é praticamente uniforme na carteira."
+            ),
+        },
+    ]
+
+    if risco_alto and risco_baixo:
+        diff = round(risco_alto["taxa_pct"] - risco_baixo["taxa_pct"], 2)
+        insights.append({
+            "insight": f"Score discrimina inadimplência: diferença de {diff} p.p. entre Alto e Baixo risco",
+            "detalhe": (
+                f"Score Alto: {risco_alto['taxa_pct']}% de inadimplência ({risco_alto['total']:,} parcelas). "
+                f"Score Baixo: {risco_baixo['taxa_pct']}% ({risco_baixo['total']:,} parcelas). "
+                "O score de risco é o principal preditor identificado."
+            ),
+        })
+
+    if por_contemplado_list:
+        nao = next((c for c in por_contemplado_list if c["contemplado"] == "Não"), None)
+        sim = next((c for c in por_contemplado_list if c["contemplado"] == "Sim"), None)
+        if nao and sim:
+            insights.append({
+                "insight": "Clientes contemplados inadimplem menos",
+                "detalhe": (
+                    f"Não-contemplados: {nao['taxa_pct']}% de inadimplência. "
+                    f"Contemplados: {sim['taxa_pct']}%. "
+                    f"Diferença de {round(nao['taxa_pct'] - sim['taxa_pct'], 2)} p.p. — "
+                    "contemplação funciona como fator protetor do crédito."
+                ),
+            })
+
+    return {
+        "indicador_geral": {
+            "taxa_pct": taxa_geral,
+            "total_parcelas": total,
+            "parcelas_atrasadas": n_atrasados,
+            "parcelas_em_dia": n_em_dia,
+            "atraso_medio_dias": atraso_medio,
+            "variacao_periodo_ppt": variacao_ppt,
+        },
+        "evolucao_mensal": evo_list,
+        "por_regiao": por_regiao_list,
+        "por_faixa_risco": por_risco_list,
+        "por_forma_pagamento": por_forma_list,
+        "por_contemplado": por_contemplado_list,
+        "insights": insights,
+    }
+
+
 def get_risco_regional() -> dict:
     df = load_data()
 

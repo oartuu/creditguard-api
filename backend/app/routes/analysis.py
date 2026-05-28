@@ -10,6 +10,7 @@ from app.services.analysis_service import (
     get_comportamento_pagamentos,
     get_distribuicao_regional,
     get_status_cobrancas,
+    get_taxa_inadimplencia,
 )
 
 analysis_bp = Blueprint("analysis", __name__, url_prefix="/analysis")
@@ -63,3 +64,8 @@ def distribuicao_regional():
 @analysis_bp.route("/status-cobrancas")
 def status_cobrancas():
     return jsonify(get_status_cobrancas())
+
+
+@analysis_bp.route("/taxa-inadimplencia")
+def taxa_inadimplencia():
+    return jsonify(get_taxa_inadimplencia())
