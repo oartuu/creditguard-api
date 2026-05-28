@@ -147,6 +147,51 @@ export interface TaxaSegmento {
   taxa_pct: number;
 }
 
+export interface TaxaRecuperacaoGeral {
+  taxa_pct: number;
+  total_contratos: number;
+  contratos_recuperados: number;
+  variacao_periodo_ppt: number;
+  valor_total_inadimplente: number;
+  valor_recuperado: number;
+  taxa_recuperacao_valor_pct: number;
+}
+
+export interface TaxaRecMensal {
+  mes: string;
+  total: number;
+  acordos: number;
+  taxa_pct: number;
+}
+
+export interface TaxaRecAssessoria {
+  assessoria: string;
+  total: number;
+  acordos: number;
+  taxa_pct: number;
+  valor_total: number;
+  valor_recuperado: number;
+}
+
+export interface TaxaRecStatus {
+  status: string;
+  total: number;
+  pct: number;
+  valor: number;
+  pct_valor: number;
+  cor: string;
+}
+
+export interface TaxaRecuperacao {
+  indicador_geral: TaxaRecuperacaoGeral;
+  evolucao_mensal: TaxaRecMensal[];
+  por_regiao: Array<{ regiao: string; total: number; acordos: number; taxa_pct: number }>;
+  por_faixa_risco: Array<{ faixa: string; total: number; acordos: number; taxa_pct: number }>;
+  por_assessoria: TaxaRecAssessoria[];
+  por_status: TaxaRecStatus[];
+  insights: Insight[];
+}
+
 export interface TaxaInadimplencia {
   indicador_geral: TaxaInadimplenciaGeral;
   evolucao_mensal: TaxaMensal[];

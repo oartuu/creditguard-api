@@ -2,25 +2,38 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer,
 } from "recharts";
-import type { TaxaMensal } from "../types/api";
 import ChartCard from "./ChartCard";
 import { useChartTheme } from "../contexts/ThemeContext";
 
-export default function TaxaEvolucaoChart({ data }: { data: TaxaMensal[] }) {
+interface DataPoint {
+  mes: string;
+  taxa_pct: number;
+}
+
+interface Props {
+  data: DataPoint[];
+  color?: string;
+  title?: string;
+  label?: string;
+}
+
+export default function TaxaEvolucaoChart({
+  data,
+  color = "#ef4444",
+  title = "Evolução Mensal",
+  label = "Taxa",
+}: Props) {
   const ct = useChartTheme();
 
   const media = data.length
     ? Math.round((data.reduce((s, d) => s + d.taxa_pct, 0) / data.length) * 100) / 100
     : 0;
 
-  const maxTaxa = Math.max(...data.map(d => d.taxa_pct));
+  const maxTaxa = data.length ? Math.max(...data.map(d => d.taxa_pct)) : 10;
   const yMax = Math.ceil(maxTaxa / 5) * 5 + 5;
 
   return (
-    <ChartCard
-      title="Evolução Mensal da Taxa de Inadimplência"
-      subtitle={`Média do período: ${media}%`}
-    >
+    <ChartCard title={title} subtitle={`Média do período: ${media}%`}>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={data} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
@@ -41,7 +54,7 @@ export default function TaxaEvolucaoChart({ data }: { data: TaxaMensal[] }) {
               borderRadius: 8,
             }}
             labelStyle={{ color: ct.tooltip.label, fontSize: 12 }}
-            formatter={(v: number) => [`${v}%`, "Taxa de Inadimplência"]}
+            formatter={(v: number) => [`${v}%`, label]}
           />
           <ReferenceLine
             y={media}
@@ -52,10 +65,10 @@ export default function TaxaEvolucaoChart({ data }: { data: TaxaMensal[] }) {
           <Line
             type="monotone"
             dataKey="taxa_pct"
-            name="Taxa"
-            stroke="#ef4444"
+            name={label}
+            stroke={color}
             strokeWidth={2.5}
-            dot={{ r: 3, fill: "#ef4444" }}
+            dot={{ r: 3, fill: color }}
             activeDot={{ r: 5 }}
           />
         </LineChart>

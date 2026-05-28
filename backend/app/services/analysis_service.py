@@ -913,6 +913,183 @@ def get_status_cobrancas() -> dict:
     }
 
 
+def get_taxa_recuperacao() -> dict:
+    df = load_data()
+
+    contratos = df.drop_duplicates("id_contrato").copy()
+    contratos["nome_assessoria_norm"] = contratos["nome_assessoria"].str.strip().str.title()
+
+    total = len(contratos)
+    n_acordos = int((contratos["status_cobranca"] == "Acordo Firmado").sum())
+    taxa_geral = round(n_acordos / total * 100, 2)
+
+    valor_total = float(contratos["valor_inadimplente_inicial"].sum())
+    valor_recuperado = float(
+        contratos[contratos["status_cobranca"] == "Acordo Firmado"]["valor_inadimplente_inicial"].sum()
+    )
+    taxa_valor_pct = round(valor_recuperado / valor_total * 100, 2) if valor_total else 0
+
+    # --- evolução mensal ---
+    contratos_v = contratos.dropna(subset=["data_envio_assessoria"]).copy()
+    contratos_v["mes"] = contratos_v["data_envio_assessoria"].dt.to_period("M").astype(str)
+    evo = (
+        contratos_v.groupby("mes")
+        .agg(
+            total=("status_cobranca", "count"),
+            acordos=("status_cobranca", lambda x: (x == "Acordo Firmado").sum()),
+        )
+        .reset_index()
+    )
+    evo["taxa_pct"] = (evo["acordos"] / evo["total"] * 100).round(2)
+    evo_list = evo.sort_values("mes").to_dict(orient="records")
+    variacao_ppt = (
+        round(evo_list[-1]["taxa_pct"] - evo_list[0]["taxa_pct"], 2)
+        if len(evo_list) >= 2 else 0.0
+    )
+
+    # --- por região ---
+    por_regiao = (
+        contratos.groupby("regiao_cliente")
+        .agg(
+            total=("status_cobranca", "count"),
+            acordos=("status_cobranca", lambda x: (x == "Acordo Firmado").sum()),
+        )
+        .reset_index()
+        .rename(columns={"regiao_cliente": "regiao"})
+    )
+    por_regiao["taxa_pct"] = (por_regiao["acordos"] / por_regiao["total"] * 100).round(2)
+    por_regiao_list = por_regiao.sort_values("taxa_pct", ascending=False).to_dict(orient="records")
+
+    # --- por faixa de score de risco ---
+    def banda_risco(score):
+        if pd.isna(score): return "Sem score"
+        if score <= 33:    return "Baixo (1-33)"
+        if score <= 66:    return "Médio (34-66)"
+        return "Alto (67-100)"
+
+    contratos["banda"] = contratos["score_interno_risco"].apply(banda_risco)
+    ordem_risco = ["Alto (67-100)", "Médio (34-66)", "Baixo (1-33)", "Sem score"]
+    por_risco = (
+        contratos.groupby("banda")
+        .agg(
+            total=("status_cobranca", "count"),
+            acordos=("status_cobranca", lambda x: (x == "Acordo Firmado").sum()),
+        )
+        .reset_index()
+        .rename(columns={"banda": "faixa"})
+    )
+    por_risco["taxa_pct"] = (por_risco["acordos"] / por_risco["total"] * 100).round(2)
+    por_risco["_ord"] = por_risco["faixa"].map({v: i for i, v in enumerate(ordem_risco)})
+    por_risco_list = por_risco.sort_values("_ord").drop(columns="_ord").to_dict(orient="records")
+
+    # --- por assessoria ---
+    por_assessoria_list = []
+    for ass, grupo in contratos.groupby("nome_assessoria_norm"):
+        n = len(grupo)
+        n_ac = int((grupo["status_cobranca"] == "Acordo Firmado").sum())
+        val_tot = round(float(grupo["valor_inadimplente_inicial"].sum()), 2)
+        val_rec = round(
+            float(grupo[grupo["status_cobranca"] == "Acordo Firmado"]["valor_inadimplente_inicial"].sum()), 2
+        )
+        por_assessoria_list.append({
+            "assessoria": ass,
+            "total": n,
+            "acordos": n_ac,
+            "taxa_pct": round(n_ac / n * 100, 2) if n else 0,
+            "valor_total": val_tot,
+            "valor_recuperado": val_rec,
+        })
+    por_assessoria_list.sort(key=lambda x: x["taxa_pct"], reverse=True)
+
+    # --- distribuição por status ---
+    STATUS = ["Acordo Firmado", "Em Aberto", "Insucesso", "Ajuizado"]
+    STATUS_COLORS = {
+        "Acordo Firmado": "#22c55e",
+        "Em Aberto":      "#f97316",
+        "Insucesso":      "#ef4444",
+        "Ajuizado":       "#8b5cf6",
+    }
+    por_status = []
+    for status in STATUS:
+        n_s = int((contratos["status_cobranca"] == status).sum())
+        val_s = round(float(contratos[contratos["status_cobranca"] == status]["valor_inadimplente_inicial"].sum()), 2)
+        por_status.append({
+            "status": status,
+            "total": n_s,
+            "pct": round(n_s / total * 100, 2) if total else 0,
+            "valor": val_s,
+            "pct_valor": round(val_s / valor_total * 100, 2) if valor_total else 0,
+            "cor": STATUS_COLORS[status],
+        })
+
+    # --- insights ---
+    melhor_reg = por_regiao_list[0]
+    pior_reg   = por_regiao_list[-1]
+    melhor_ass = por_assessoria_list[0]
+    pior_ass   = por_assessoria_list[-1]
+    em_aberto  = next((s for s in por_status if s["status"] == "Em Aberto"), None)
+    variacao_str = f"+{variacao_ppt} p.p." if variacao_ppt > 0 else f"{variacao_ppt} p.p."
+
+    insights = [
+        {
+            "insight": f"Taxa geral de recuperação de {taxa_geral}% sobre contratos em cobrança",
+            "detalhe": (
+                f"{n_acordos:,} contratos recuperados (Acordo Firmado) de {total:,} enviados à assessoria. "
+                f"Valor recuperado: R$ {valor_recuperado:,.0f} ({taxa_valor_pct}% do valor inadimplente total). "
+                f"A taxa variou {variacao_str} ao longo do período."
+            ),
+        },
+    ]
+
+    if em_aberto:
+        insights.append({
+            "insight": f"{em_aberto['total']:,} contratos 'Em Aberto' — maior oportunidade de recuperação imediata",
+            "detalhe": (
+                f"Esses {em_aberto['pct']}% dos contratos concentram "
+                f"R$ {em_aberto['valor']:,.0f} ({em_aberto['pct_valor']}% do valor total). "
+                "Ação proativa sobre esse grupo pode elevar significativamente a taxa de recuperação."
+            ),
+        })
+
+    insights.append({
+        "insight": (
+            f"Melhor região: {melhor_reg['regiao']} ({melhor_reg['taxa_pct']}%) — "
+            f"pior: {pior_reg['regiao']} ({pior_reg['taxa_pct']}%)"
+        ),
+        "detalhe": (
+            f"Spread regional de {round(melhor_reg['taxa_pct'] - pior_reg['taxa_pct'], 2)} p.p. "
+            "indica que fatores operacionais (assessoria, perfil local) impactam mais que o risco geográfico."
+        ),
+    })
+
+    insights.append({
+        "insight": f"{melhor_ass['assessoria']} lidera com {melhor_ass['taxa_pct']}% de recuperação",
+        "detalhe": (
+            f"Diferença de {round(melhor_ass['taxa_pct'] - pior_ass['taxa_pct'], 2)} p.p. "
+            f"em relação a {pior_ass['assessoria']} ({pior_ass['taxa_pct']}%). "
+            "Redistribuir contratos para assessorias de maior performance pode elevar a taxa geral."
+        ),
+    })
+
+    return {
+        "indicador_geral": {
+            "taxa_pct": taxa_geral,
+            "total_contratos": total,
+            "contratos_recuperados": n_acordos,
+            "variacao_periodo_ppt": variacao_ppt,
+            "valor_total_inadimplente": round(valor_total, 2),
+            "valor_recuperado": round(valor_recuperado, 2),
+            "taxa_recuperacao_valor_pct": taxa_valor_pct,
+        },
+        "evolucao_mensal": evo_list,
+        "por_regiao": por_regiao_list,
+        "por_faixa_risco": por_risco_list,
+        "por_assessoria": por_assessoria_list,
+        "por_status": por_status,
+        "insights": insights,
+    }
+
+
 def get_taxa_inadimplencia() -> dict:
     df = load_data()
 

@@ -14,15 +14,21 @@ interface Props {
   subtitle?: string;
   data: SegmentoItem[];
   referencia?: number;
+  higherIsBetter?: boolean;
 }
 
-function getColor(taxa: number, referencia: number): string {
-  if (taxa > referencia + 2) return "#ef4444";
-  if (taxa < referencia - 2) return "#22c55e";
+function getColor(taxa: number, referencia: number, higherIsBetter: boolean): string {
+  if (higherIsBetter) {
+    if (taxa > referencia + 2) return "#22c55e";
+    if (taxa < referencia - 2) return "#ef4444";
+  } else {
+    if (taxa > referencia + 2) return "#ef4444";
+    if (taxa < referencia - 2) return "#22c55e";
+  }
   return "#f97316";
 }
 
-export default function TaxaSegmentacaoChart({ title, subtitle, data, referencia = 0 }: Props) {
+export default function TaxaSegmentacaoChart({ title, subtitle, data, referencia = 0, higherIsBetter = false }: Props) {
   const ct = useChartTheme();
   const ref = referencia || (data.reduce((s, d) => s + d.taxa_pct, 0) / (data.length || 1));
 
@@ -64,7 +70,7 @@ export default function TaxaSegmentacaoChart({ title, subtitle, data, referencia
           />
           <Bar dataKey="taxa_pct" radius={[0, 4, 4, 0]}>
             {data.map((entry, i) => (
-              <Cell key={i} fill={getColor(entry.taxa_pct, ref)} />
+              <Cell key={i} fill={getColor(entry.taxa_pct, ref, higherIsBetter)} />
             ))}
           </Bar>
         </BarChart>
