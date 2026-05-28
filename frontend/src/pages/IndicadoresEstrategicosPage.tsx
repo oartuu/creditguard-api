@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import type { TaxaInadimplencia, TaxaRecuperacao, AtrasoMedio } from "../types/api";
-import { fetchTaxaInadimplencia, fetchTaxaRecuperacao, fetchAtrasoMedio } from "../services/api";
+import type { TaxaInadimplencia, TaxaRecuperacao, AtrasoMedio, RiscoRegionalEstratégico, TendenciaTemporal } from "../types/api";
+import { fetchTaxaInadimplencia, fetchTaxaRecuperacao, fetchAtrasoMedio, fetchRiscoRegional, fetchTendenciaTemporal } from "../services/api";
 import TaxaInadimplenciaHero    from "../components/TaxaInadimplenciaHero";
 import TaxaRecuperacaoHero      from "../components/TaxaRecuperacaoHero";
 import AtrasoMedioHero          from "../components/AtrasoMedioHero";
 import TaxaEvolucaoChart        from "../components/TaxaEvolucaoChart";
 import TaxaSegmentacaoChart     from "../components/TaxaSegmentacaoChart";
 import InsightsPanel            from "../components/InsightsPanel";
+import RiscoRegionalCard        from "../components/RiscoRegionalCard";
+import TendenciaTemporalCard    from "../components/TendenciaTemporalCard";
+import FormulasIndicadores      from "../components/FormulasIndicadores";
 
 function Spinner() {
   return (
@@ -62,11 +65,21 @@ export default function IndicadoresEstrategicosPage() {
   const [inadimplencia, setInadimplencia] = useState<TaxaInadimplencia | null>(null);
   const [recuperacao, setRecuperacao]     = useState<TaxaRecuperacao | null>(null);
   const [atraso, setAtraso]               = useState<AtrasoMedio | null>(null);
+  const [risco, setRisco]                 = useState<RiscoRegionalEstratégico | null>(null);
+  const [tendencia, setTendencia]         = useState<TendenciaTemporal | null>(null);
   const [error, setError]                 = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchTaxaInadimplencia(), fetchTaxaRecuperacao(), fetchAtrasoMedio()])
-      .then(([i, r, a]) => { setInadimplencia(i); setRecuperacao(r); setAtraso(a); })
+    Promise.all([
+      fetchTaxaInadimplencia(),
+      fetchTaxaRecuperacao(),
+      fetchAtrasoMedio(),
+      fetchRiscoRegional(),
+      fetchTendenciaTemporal(),
+    ])
+      .then(([i, r, a, ri, te]) => {
+        setInadimplencia(i); setRecuperacao(r); setAtraso(a); setRisco(ri); setTendencia(te);
+      })
       .catch(() => setError("Não foi possível conectar à API. Verifique se o servidor Flask está rodando na porta 5000."));
   }, []);
 
@@ -250,6 +263,47 @@ export default function IndicadoresEstrategicosPage() {
           {atraso
             ? <InsightsPanel title="Insights — Atraso Médio" insights={atraso.insights} />
             : <Spinner />}
+        </Section>
+
+        <Divider />
+
+        {/* ── RISCO REGIONAL ── */}
+        <Section title="Risco Regional — Score Composto" accent="red">
+          {risco
+            ? <RiscoRegionalCard data={risco.por_regiao} pesos={risco.pesos} />
+            : <Spinner />}
+        </Section>
+
+        <Section title="Risco Regional — Insights" accent="red">
+          {risco
+            ? <InsightsPanel title="Insights — Risco Regional" insights={risco.insights} />
+            : <Spinner />}
+        </Section>
+
+        <Divider />
+
+        {/* ── TENDÊNCIA TEMPORAL ── */}
+        <Section title="Tendência Temporal — Regressão Linear" accent="orange">
+          {tendencia
+            ? <TendenciaTemporalCard
+                inadimplencia={tendencia.inadimplencia.tendencia}
+                recuperacao={tendencia.recuperacao.tendencia}
+                atraso_medio={tendencia.atraso_medio.tendencia}
+              />
+            : <Spinner />}
+        </Section>
+
+        <Section title="Tendência Temporal — Insights" accent="orange">
+          {tendencia
+            ? <InsightsPanel title="Insights — Tendência Temporal" insights={tendencia.insights} />
+            : <Spinner />}
+        </Section>
+
+        <Divider />
+
+        {/* ── DOCUMENTAÇÃO DAS FÓRMULAS ── */}
+        <Section title="Documentação das Fórmulas dos Indicadores">
+          <FormulasIndicadores />
         </Section>
 
       </div>

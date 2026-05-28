@@ -18,12 +18,44 @@ const MODULES = [
     icon: <ShieldIcon />,
   },
   {
-    id: "modelagem-risco",
+    id: "padroes-insights",
     num: "03",
-    label: "Modelagem de Risco",
-    sub: "Em breve",
-    available: false,
-    icon: <TrendIcon />,
+    label: "Padrões e Insights",
+    sub: "Perfis & Recomendações",
+    available: true,
+    icon: <LightbulbIcon />,
+  },
+  {
+    id: "visao-diretoria",
+    num: "04",
+    label: "Visão da Diretoria",
+    sub: "Dashboard Executivo",
+    available: true,
+    icon: <BoardIcon />,
+  },
+  {
+    id: "visao-financeira",
+    num: "05",
+    label: "Visão Financeira",
+    sub: "Valores & Exposição",
+    available: true,
+    icon: <FinanceiroIcon />,
+  },
+  {
+    id: "operacao-cobranca",
+    num: "06",
+    label: "Operação de Cobrança",
+    sub: "Status & Desempenho",
+    available: true,
+    icon: <CobrancaIcon />,
+  },
+  {
+    id: "dashboard-final",
+    num: "07",
+    label: "Dashboard Final",
+    sub: "Validação & Apresentação",
+    available: true,
+    icon: <DashboardFinalIcon />,
   },
 ];
 
@@ -45,11 +77,49 @@ function ShieldIcon() {
   );
 }
 
-function TrendIcon() {
+function LightbulbIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-      <polyline points="16 7 22 7 22 13" />
+      <line x1="9" y1="18" x2="15" y2="18"/>
+      <line x1="10" y1="22" x2="14" y2="22"/>
+      <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+    </svg>
+  );
+}
+
+function BoardIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18M9 21V9" />
+    </svg>
+  );
+}
+
+function FinanceiroIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  );
+}
+
+function CobrancaIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  );
+}
+
+function DashboardFinalIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
     </svg>
   );
 }

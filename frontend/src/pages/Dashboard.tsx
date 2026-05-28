@@ -3,6 +3,11 @@ import { useTheme } from "../contexts/ThemeContext";
 import Sidebar from "../components/Sidebar";
 import AnaliseExploratoriaPage         from "./AnaliseExploratoriaPage";
 import IndicadoresEstrategicosPage     from "./IndicadoresEstrategicosPage";
+import PadroesInsightsPage             from "./PadroesInsightsPage";
+import VisaoDiretoriaPage              from "./VisaoDiretoriaPage";
+import VisaoFinanceiraPage             from "./VisaoFinanceiraPage";
+import OperacaoCobrancaPage            from "./OperacaoCobrancaPage";
+import DashboardFinalPage              from "./DashboardFinalPage";
 
 function SunIcon() {
   return (
@@ -69,6 +74,11 @@ export default function Dashboard() {
           <div className="max-w-[1100px] mx-auto px-6 py-8">
             {activeModule === "analise-exploratoria"       && <AnaliseExploratoriaPage />}
             {activeModule === "indicadores-estrategicos"  && <IndicadoresEstrategicosPage />}
+            {activeModule === "padroes-insights"          && <PadroesInsightsPage />}
+            {activeModule === "visao-diretoria"           && <VisaoDiretoriaPage />}
+            {activeModule === "visao-financeira"          && <VisaoFinanceiraPage />}
+            {activeModule === "operacao-cobranca"         && <OperacaoCobrancaPage />}
+            {activeModule === "dashboard-final"           && <DashboardFinalPage />}
           </div>
         </main>
       </div>
