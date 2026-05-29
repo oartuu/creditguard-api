@@ -24,10 +24,10 @@ interface SectionProps {
 }
 
 const ACCENT = {
-  purple: { dot: "bg-purple-500", label: "text-purple-500 bg-purple-500/10" },
-  teal:   { dot: "bg-teal-500",   label: "text-teal-500 bg-teal-500/10" },
-  rose:   { dot: "bg-rose-500",   label: "text-rose-500 bg-rose-500/10" },
-  sky:    { dot: "bg-sky-500",    label: "text-sky-500 bg-sky-500/10" },
+  purple: { dot: "bg-blue-500",  label: "text-blue-500 bg-blue-500/10" },
+  teal:   { dot: "bg-blue-500",  label: "text-blue-500 bg-blue-500/10" },
+  rose:   { dot: "bg-red-500",   label: "text-red-500 bg-red-500/10" },
+  sky:    { dot: "bg-blue-500",  label: "text-blue-500 bg-blue-500/10" },
 };
 
 function Section({ title, accent = "purple", children }: SectionProps) {
@@ -93,12 +93,12 @@ export default function PadroesInsightsPage() {
 
       {/* Module header */}
       <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-900/40 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+        <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
           <LightbulbIcon />
         </div>
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-[2px] text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold uppercase tracking-[2px] text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">
               Módulo 03
             </span>
           </div>

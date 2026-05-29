@@ -92,12 +92,12 @@ export default function VisaoFinanceiraPage() {
 
       {/* Module header */}
       <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-900/40 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+        <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
           <FinanceiroIcon />
         </div>
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-[2px] text-emerald-600 bg-emerald-600/10 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold uppercase tracking-[2px] text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">
               Módulo 05
             </span>
           </div>

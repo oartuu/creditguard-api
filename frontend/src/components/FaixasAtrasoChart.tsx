@@ -3,7 +3,7 @@ import type { DistribuicaoAtrasos } from "../types/api";
 import ChartCard from "./ChartCard";
 import { useChartTheme } from "../contexts/ThemeContext";
 
-const COLORS = ["#22c55e", "#f97316", "#ef4444", "#a855f7", "#dc2626"];
+const COLORS = ["#22c55e", "#f07c19", "#e32551", "#a855f7", "#c11f46"];
 
 interface ChartPoint {
   faixa: string;

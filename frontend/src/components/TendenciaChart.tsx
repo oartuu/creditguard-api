@@ -37,7 +37,7 @@ export default function TendenciaChart({ data }: { data: Tendencia | null }) {
             formatter={(v) => [`${v}%`]}
           />
           <Legend wrapperStyle={{ color: ct.legend, fontSize: 12 }} />
-          <Line type="monotone" dataKey="inadimplencia" name="Inadimplência" stroke="#ef4444" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="inadimplencia" name="Inadimplência" stroke="#e32551" strokeWidth={2} dot={false} />
           <Line type="monotone" dataKey="recuperacao"   name="Recuperação"   stroke="#22c55e" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>

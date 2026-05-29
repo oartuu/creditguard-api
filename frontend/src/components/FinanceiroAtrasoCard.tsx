@@ -59,7 +59,7 @@ export default function FinanceiroAtrasoCard({ data }: Props) {
         <div className="flex flex-col gap-3">
           {data.por_regiao.map(r => {
             const pct = (r.media_dias / maxMedia) * 100;
-            const color = pct > 80 ? "#ef4444" : pct > 60 ? "#f97316" : "#f59e0b";
+            const color = pct > 80 ? "#e32551" : pct > 60 ? "#f07c19" : "#ffc219";
             return (
               <div key={r.regiao} className="flex items-center gap-3">
                 <div className="w-20 text-[12px] text-slate-600 dark:text-slate-300 text-right flex-shrink-0 font-medium">

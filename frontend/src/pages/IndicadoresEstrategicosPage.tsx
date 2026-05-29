@@ -151,7 +151,7 @@ export default function IndicadoresEstrategicosPage() {
           {inadimplencia
             ? <TaxaEvolucaoChart
                 data={inadimplencia.evolucao_mensal}
-                color="#ef4444"
+                color="#e32551"
                 title="Evolução Mensal da Taxa de Inadimplência"
                 label="Taxa de Inadimplência"
               />
@@ -238,7 +238,7 @@ export default function IndicadoresEstrategicosPage() {
                 data={atraso.evolucao_mensal}
                 dataKey="media_dias"
                 suffix=" dias"
-                color="#f97316"
+                color="#f07c19"
                 title="Evolução Mensal do Atraso Médio"
                 label="Atraso Médio"
               />

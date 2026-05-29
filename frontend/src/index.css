@@ -1,11 +1,79 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  /* Brand teal — substitui blue */
+  --color-blue-50: #e6f7f9;
+  --color-blue-100: #c0ebf0;
+  --color-blue-200: #88d8e3;
+  --color-blue-300: #45c1d0;
+  --color-blue-400: #14afc0;
+  --color-blue-500: #029daf;
+  --color-blue-600: #018393;
+  --color-blue-700: #016877;
+  --color-blue-800: #014f5b;
+  --color-blue-900: #013740;
+
+  /* Brand teal também para indigo */
+  --color-indigo-50: #e6f7f9;
+  --color-indigo-100: #c0ebf0;
+  --color-indigo-200: #88d8e3;
+  --color-indigo-300: #45c1d0;
+  --color-indigo-400: #14afc0;
+  --color-indigo-500: #029daf;
+  --color-indigo-600: #018393;
+  --color-indigo-700: #016877;
+  --color-indigo-800: #014f5b;
+  --color-indigo-900: #013740;
+
+  /* Brand danger — substitui red */
+  --color-red-50: #fce8ee;
+  --color-red-100: #f7c1d0;
+  --color-red-200: #f190ab;
+  --color-red-300: #e8647e;
+  --color-red-400: #e54368;
+  --color-red-500: #e32551;
+  --color-red-600: #c11f46;
+  --color-red-700: #9e183a;
+  --color-red-800: #7b112d;
+  --color-red-900: #580c21;
+
+  /* Brand orange */
+  --color-orange-50: #fef2e7;
+  --color-orange-100: #fcdfc3;
+  --color-orange-200: #f9c89b;
+  --color-orange-300: #f5ac68;
+  --color-orange-400: #f2943e;
+  --color-orange-500: #f07c19;
+  --color-orange-600: #cf6914;
+  --color-orange-700: #a85510;
+  --color-orange-800: #83410c;
+  --color-orange-900: #5e2e08;
+
+  /* Brand gold — substitui amber */
+  --color-amber-50: #fffbe6;
+  --color-amber-100: #fff5c2;
+  --color-amber-200: #ffec87;
+  --color-amber-300: #ffe042;
+  --color-amber-400: #ffd11f;
+  --color-amber-500: #ffc219;
+  --color-amber-600: #d9a000;
+  --color-amber-700: #b38000;
+  --color-amber-800: #8c6200;
+  --color-amber-900: #664700;
+}
+
 body {
-  background-color: #f8fafc;
+  background-color: #f5f7f8;
   transition: background-color 0.2s;
 }
 
 html.dark body {
-  background-color: #0f172a;
+  background-color: #0d1520;
+}
+
+/* Recharts tooltip — força texto branco no dark mode */
+html.dark .recharts-default-tooltip .recharts-tooltip-label,
+html.dark .recharts-default-tooltip .recharts-tooltip-item {
+  color: #f1f5f9 !important;
 }

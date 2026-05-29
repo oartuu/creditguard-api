@@ -29,8 +29,8 @@ export default function FinanceiroEvolucaoChart({ data }: Props) {
         <AreaChart data={data} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
           <defs>
             <linearGradient id="gradInad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#ef4444" stopOpacity={0.02} />
+              <stop offset="5%"  stopColor="#e32551" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#e32551" stopOpacity={0.02} />
             </linearGradient>
             <linearGradient id="gradRec" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor="#22c55e" stopOpacity={0.3} />
@@ -59,10 +59,10 @@ export default function FinanceiroEvolucaoChart({ data }: Props) {
           <Area
             type="monotone"
             dataKey="valor_inadimplente"
-            stroke="#ef4444"
+            stroke="#e32551"
             strokeWidth={2.5}
             fill="url(#gradInad)"
-            dot={{ r: 3, fill: "#ef4444" }}
+            dot={{ r: 3, fill: "#e32551" }}
             activeDot={{ r: 5 }}
           />
           <Area

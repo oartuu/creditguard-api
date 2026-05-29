@@ -8,16 +8,16 @@ import { useChartTheme } from "../contexts/ThemeContext";
 
 const STATUS_COLORS = {
   acordos:   "#22c55e",
-  em_aberto: "#f97316",
-  insucesso: "#ef4444",
+  em_aberto: "#f07c19",
+  insucesso: "#e32551",
   ajuizado:  "#8b5cf6",
 };
 
 function eficienciaColor(score: number, max: number): string {
   const ratio = score / max;
   if (ratio >= 0.95) return "#22c55e";
-  if (ratio >= 0.85) return "#f97316";
-  return "#ef4444";
+  if (ratio >= 0.85) return "#f07c19";
+  return "#e32551";
 }
 
 function ValorBR(v: number) {
@@ -109,15 +109,15 @@ export default function EficienciaRecuperacaoCard({ assessorias }: Props) {
                   <span className="text-slate-400 dark:text-slate-500 ml-1">acordos</span>
                 </div>
                 <div>
-                  <span className="text-orange-500 font-semibold">{ass.taxa_em_aberto}%</span>
+                  <span className="text-orange-500 dark:text-orange-400 font-semibold">{ass.taxa_em_aberto}%</span>
                   <span className="text-slate-400 dark:text-slate-500 ml-1">em aberto</span>
                 </div>
                 <div>
-                  <span className="text-red-500 font-semibold">{ass.taxa_insucesso}%</span>
+                  <span className="text-red-600 dark:text-red-400 font-semibold">{ass.taxa_insucesso}%</span>
                   <span className="text-slate-400 dark:text-slate-500 ml-1">insucesso</span>
                 </div>
                 <div>
-                  <span className="text-purple-500 font-semibold">{ass.taxa_judicializacao}%</span>
+                  <span className="text-[#8b5cf6] font-semibold">{ass.taxa_judicializacao}%</span>
                   <span className="text-slate-400 dark:text-slate-500 ml-1">ajuizado</span>
                 </div>
               </div>
