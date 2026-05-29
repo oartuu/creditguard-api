@@ -189,10 +189,19 @@ function ModuleItem({ num, label, sub, available, icon, isActive, onClick }: Mod
 export default function Sidebar({ activeModule, onModuleChange }: SidebarProps) {
   return (
     <aside className="w-[220px] flex-shrink-0 border-r border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 flex flex-col transition-colors">
-      <div className="px-3 pt-5 pb-2">
-        <span className="text-[10px] font-bold uppercase tracking-[2px] text-slate-400 dark:text-slate-500 px-1">
-          Módulos
-        </span>
+      <div className="px-4 pt-5 pb-3">
+        <div className="flex items-center justify-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-500 dark:text-blue-400 flex-shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+          </div>
+          <span className="text-[13px] font-extrabold uppercase tracking-[0.18em] text-slate-700 dark:text-slate-200">
+            Módulos
+          </span>
+        </div>
       </div>
 
       <nav className="flex flex-col gap-1 px-3 pb-4 overflow-y-auto flex-1">
