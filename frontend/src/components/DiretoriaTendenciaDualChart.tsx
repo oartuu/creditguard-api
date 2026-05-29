@@ -64,9 +64,9 @@ export default function DiretoriaTendenciaDualChart({ inadimplencia, recuperacao
             type="monotone"
             dataKey="inadimplencia"
             name="inadimplencia"
-            stroke="#ef4444"
+            stroke="#e32551"
             strokeWidth={2.5}
-            dot={{ r: 3, fill: "#ef4444" }}
+            dot={{ r: 3, fill: "#e32551" }}
             activeDot={{ r: 5 }}
           />
           <Line

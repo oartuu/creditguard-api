@@ -27,7 +27,7 @@ const ACCENT = {
   green:  { dot: "bg-green-500",  label: "text-green-500 bg-green-500/10" },
   amber:  { dot: "bg-amber-500",  label: "text-amber-500 bg-amber-500/10" },
   orange: { dot: "bg-orange-500", label: "text-orange-500 bg-orange-500/10" },
-  purple: { dot: "bg-purple-500", label: "text-purple-500 bg-purple-500/10" },
+  purple: { dot: "bg-blue-500",   label: "text-blue-500 bg-blue-500/10" },
 };
 
 function Section({ title, accent = "blue", children }: SectionProps) {
@@ -93,12 +93,12 @@ export default function OperacaoCobrancaPage() {
 
       {/* Module header */}
       <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-900/40 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+        <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
           <CobrancaIcon />
         </div>
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-[2px] text-violet-600 bg-violet-600/10 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold uppercase tracking-[2px] text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">
               Módulo 06
             </span>
           </div>

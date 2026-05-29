@@ -2,7 +2,7 @@ import type { Insight } from "../types/api";
 
 function InsightCard({ insight, detalhe }: Insight) {
   return (
-    <div className="bg-slate-100 dark:bg-slate-900 rounded-lg px-4 py-3.5 flex flex-col gap-1.5 border-l-[3px] border-blue-500 transition-colors">
+    <div className="bg-slate-50 dark:bg-slate-900/80 rounded-lg px-4 py-3.5 flex flex-col gap-1.5 border-l-[3px] border-blue-500 transition-colors">
       <span className="text-slate-800 dark:text-slate-100 text-sm font-semibold">{insight}</span>
       <span className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">{detalhe}</span>
     </div>

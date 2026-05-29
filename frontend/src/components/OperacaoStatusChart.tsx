@@ -93,8 +93,8 @@ export default function OperacaoStatusChart({ status_cobrancas, evolucao_mensal 
               labelFormatter={(l: unknown) => `Mês ${l}`}
             />
             <Bar dataKey="acordos"   stackId="a" fill="#22c55e" name="Acordo Firmado"  radius={[0, 0, 0, 0]} />
-            <Bar dataKey="em_aberto" stackId="a" fill="#f97316" name="Em Aberto"       radius={[0, 0, 0, 0]} />
-            <Bar dataKey="insucesso" stackId="a" fill="#ef4444" name="Insucesso"        radius={[0, 0, 0, 0]} />
+            <Bar dataKey="em_aberto" stackId="a" fill="#f07c19" name="Em Aberto"       radius={[0, 0, 0, 0]} />
+            <Bar dataKey="insucesso" stackId="a" fill="#e32551" name="Insucesso"        radius={[0, 0, 0, 0]} />
             <Bar dataKey="ajuizado"  stackId="a" fill="#8b5cf6" name="Ajuizado"         radius={[4, 4, 0, 0]}>
               <LabelList dataKey="ajuizado" position="top" style={{ fill: ct.tick, fontSize: 9 }} />
             </Bar>

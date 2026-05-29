@@ -14,16 +14,16 @@ const MEDAL = ["🥇", "🥈", "🥉"];
 function scoreColor(score: number, max: number): string {
   const r = score / max;
   if (r >= 0.85) return "#22c55e";
-  if (r >= 0.65) return "#f97316";
-  return "#ef4444";
+  if (r >= 0.65) return "#f07c19";
+  return "#e32551";
 }
 
 function StatusStrip({ d }: { d: OCDesempenhoAssessoria }) {
   const n = d.total_contratos;
   const parts = [
     { pct: (d.acordos    / n) * 100, color: "#22c55e" },
-    { pct: (d.em_aberto  / n) * 100, color: "#f97316" },
-    { pct: (d.insucesso  / n) * 100, color: "#ef4444" },
+    { pct: (d.em_aberto  / n) * 100, color: "#f07c19" },
+    { pct: (d.insucesso  / n) * 100, color: "#e32551" },
     { pct: (d.ajuizado   / n) * 100, color: "#8b5cf6" },
   ];
   return (
@@ -118,11 +118,11 @@ export default function DesempenhoOperacionalTable({ desempenho }: Props) {
                   <span className="text-slate-400 dark:text-slate-500 ml-1">em aberto</span>
                 </div>
                 <div>
-                  <span className="text-red-500 font-semibold">{d.taxa_insucesso_pct}%</span>
+                  <span className="text-red-600 dark:text-red-400 font-semibold">{d.taxa_insucesso_pct}%</span>
                   <span className="text-slate-400 dark:text-slate-500 ml-1">insucesso</span>
                 </div>
                 <div>
-                  <span className="text-purple-500 font-semibold">{d.taxa_ajuizado_pct}%</span>
+                  <span className="text-[#8b5cf6] font-semibold">{d.taxa_ajuizado_pct}%</span>
                   <span className="text-slate-400 dark:text-slate-500 ml-1">ajuizado</span>
                 </div>
               </div>
@@ -131,7 +131,7 @@ export default function DesempenhoOperacionalTable({ desempenho }: Props) {
                 <span className="text-slate-200 dark:text-slate-700">·</span>
                 <span className="text-green-600 dark:text-green-400">{fmtBRL(d.valor_recuperado)} recuperado</span>
                 <span className="text-slate-200 dark:text-slate-700">·</span>
-                <span className="text-orange-500">{fmtBRL(d.valor_em_aberto)} em aberto</span>
+                <span className="text-orange-500 dark:text-orange-400">{fmtBRL(d.valor_em_aberto)} em aberto</span>
               </div>
             </div>
           ))}

@@ -21,7 +21,7 @@ interface Props {
 
 export default function TaxaEvolucaoChart({
   data,
-  color = "#ef4444",
+  color = "#e32551",
   title = "Evolução Mensal",
   label = "Taxa",
   dataKey = "taxa_pct",

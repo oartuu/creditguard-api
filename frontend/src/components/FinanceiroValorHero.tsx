@@ -7,8 +7,8 @@ const fmtBRL = (v: number) =>
 
 const STATUS_COLOR: Record<string, string> = {
   "Acordo Firmado": "#22c55e",
-  "Em Aberto":      "#f97316",
-  "Insucesso":      "#ef4444",
+  "Em Aberto":      "#f07c19",
+  "Insucesso":      "#e32551",
   "Ajuizado":       "#a855f7",
 };
 

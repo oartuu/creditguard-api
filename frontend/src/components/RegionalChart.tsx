@@ -4,7 +4,7 @@ import ChartCard from "./ChartCard";
 import { useChartTheme } from "../contexts/ThemeContext";
 
 const fmtBRL = (v: number) => `R$ ${(v / 1_000_000).toFixed(1)}M`;
-const COLORS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06b6d4"];
+const COLORS = ["#029daf", "#22c55e", "#f07c19", "#a855f7", "#14afc0"];
 
 interface InadimplenciaPoint { regiao: string; taxa: number; color: string; }
 interface ValorPoint { regiao: string; valor: number; pct: number; color: string; }
@@ -81,7 +81,7 @@ export default function RegionalChart({ data }: { data: DistribuicaoRegional | n
               formatter={(v) => [`${v}%`]}
             />
             <Bar dataKey="taxa" name="Recuperação" fill="#22c55e" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="judicializacao" name="Ajuizamento" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="judicializacao" name="Ajuizamento" fill="#e32551" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>

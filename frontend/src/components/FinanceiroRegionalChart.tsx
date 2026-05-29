@@ -7,7 +7,7 @@ import ChartCard from "./ChartCard";
 import { useChartTheme } from "../contexts/ThemeContext";
 
 const fmtBRL = (v: number) => `R$ ${(v / 1_000_000).toFixed(1)}M`;
-const COLORS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06b6d4"];
+const COLORS = ["#029daf", "#22c55e", "#f07c19", "#a855f7", "#14afc0"];
 
 interface Props {
   data: VFRegiao[];
