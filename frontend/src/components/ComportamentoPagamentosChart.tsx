@@ -5,8 +5,8 @@ import { useChartTheme } from "../contexts/ThemeContext";
 
 const TIPO_CORES: Record<string, string> = {
   pago_integral: "#22c55e",
-  pago_com_juros_multa: "#f97316",
-  nao_pago: "#ef4444",
+  pago_com_juros_multa: "#f07c19",
+  nao_pago: "#e32551",
   pago_parcial: "#64748b",
 };
 
@@ -37,7 +37,7 @@ export default function ComportamentoPagamentosChart({ data }: { data: Comportam
   const contempladoData: ContempladoPoint[] = data.por_indicador_contemplado?.map(d => ({
     situacao: d.contemplado === "Sim" ? "Contemplado" : "Não Contemplado",
     taxa: d.taxa_inadimplencia_pct,
-    fill: d.contemplado === "Sim" ? "#22c55e" : "#ef4444",
+    fill: d.contemplado === "Sim" ? "#22c55e" : "#e32551",
   }));
 
   const formaData: FormaPoint[] = data.por_forma_pagamento?.map(d => ({
@@ -89,7 +89,7 @@ export default function ComportamentoPagamentosChart({ data }: { data: Comportam
               contentStyle={{ background: ct.tooltip.background, border: `1px solid ${ct.tooltip.border}`, borderRadius: 8 }}
               formatter={(v) => [`${v}%`, "Inadimplência"]}
             />
-            <Bar dataKey="taxa" name="Inadimplência" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="taxa" name="Inadimplência" fill="#029daf" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>

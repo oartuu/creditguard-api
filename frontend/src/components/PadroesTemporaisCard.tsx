@@ -9,7 +9,7 @@ import { useChartTheme } from "../contexts/ThemeContext";
 type TemporalData = PadroesInsights["padroes_temporais"];
 
 function barColor(taxa: number, media: number): string {
-  if (taxa > media + 0.5) return "#ef4444";
+  if (taxa > media + 0.5) return "#e32551";
   if (taxa < media - 0.5) return "#22c55e";
   return "#94a3b8";
 }

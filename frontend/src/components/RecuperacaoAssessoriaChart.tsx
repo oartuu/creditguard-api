@@ -36,8 +36,8 @@ export default function RecuperacaoAssessoriaChart({ data }: { data: StatusCobra
           />
           <Legend wrapperStyle={{ color: ct.legend, fontSize: 12 }} />
           <Bar dataKey="Acordo Firmado" stackId="a" fill="#22c55e" />
-          <Bar dataKey="Em Aberto"      stackId="a" fill="#f97316" />
-          <Bar dataKey="Insucesso"      stackId="a" fill="#ef4444" />
+          <Bar dataKey="Em Aberto"      stackId="a" fill="#f07c19" />
+          <Bar dataKey="Insucesso"      stackId="a" fill="#e32551" />
           <Bar dataKey="Ajuizado"       stackId="a" fill="#a855f7" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>

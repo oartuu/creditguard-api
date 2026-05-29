@@ -25,8 +25,8 @@ const ACCENT = {
   red:    { dot: "bg-red-500",    label: "text-red-500 bg-red-500/10" },
   green:  { dot: "bg-green-500",  label: "text-green-500 bg-green-500/10" },
   amber:  { dot: "bg-amber-500",  label: "text-amber-500 bg-amber-500/10" },
-  purple: { dot: "bg-purple-500", label: "text-purple-500 bg-purple-500/10" },
-  indigo: { dot: "bg-indigo-500", label: "text-indigo-500 bg-indigo-500/10" },
+  purple: { dot: "bg-blue-500",   label: "text-blue-500 bg-blue-500/10" },
+  indigo: { dot: "bg-blue-500",   label: "text-blue-500 bg-blue-500/10" },
 };
 
 function Section({ title, accent = "blue", children }: SectionProps) {

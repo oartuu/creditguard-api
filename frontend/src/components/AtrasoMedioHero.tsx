@@ -5,10 +5,10 @@ const fmtNum = (v: number) => Number(v).toLocaleString("pt-BR");
 const FAIXA_COLORS: Record<string, string> = {
   "1-15 dias":    "#22c55e",
   "16-30 dias":   "#84cc16",
-  "31-60 dias":   "#f97316",
-  "61-90 dias":   "#ef4444",
-  "91-120 dias":  "#dc2626",
-  "120+ dias":    "#7f1d1d",
+  "31-60 dias":   "#f07c19",
+  "61-90 dias":   "#e32551",
+  "91-120 dias":  "#c11f46",
+  "120+ dias":    "#7b112d",
 };
 
 interface PercentilBarProps {
@@ -112,9 +112,9 @@ export default function AtrasoMedioHero({ data, faixas }: Props) {
           </p>
           <PercentilBar label="p25" value={p.p25} max={maxPercentil} color="#22c55e" />
           <PercentilBar label="p50" value={p.p50} max={maxPercentil} color="#84cc16" />
-          <PercentilBar label="p75" value={p.p75} max={maxPercentil} color="#f97316" />
-          <PercentilBar label="p90" value={p.p90} max={maxPercentil} color="#ef4444" />
-          <PercentilBar label="p95" value={p.p95} max={maxPercentil} color="#dc2626" />
+          <PercentilBar label="p75" value={p.p75} max={maxPercentil} color="#f07c19" />
+          <PercentilBar label="p90" value={p.p90} max={maxPercentil} color="#e32551" />
+          <PercentilBar label="p95" value={p.p95} max={maxPercentil} color="#c11f46" />
         </div>
 
         {/* Faixas */}

@@ -22,12 +22,12 @@ interface Props {
 function getColor(taxa: number, referencia: number, higherIsBetter: boolean): string {
   if (higherIsBetter) {
     if (taxa > referencia + 2) return "#22c55e";
-    if (taxa < referencia - 2) return "#ef4444";
+    if (taxa < referencia - 2) return "#e32551";
   } else {
-    if (taxa > referencia + 2) return "#ef4444";
+    if (taxa > referencia + 2) return "#e32551";
     if (taxa < referencia - 2) return "#22c55e";
   }
-  return "#f97316";
+  return "#f07c19";
 }
 
 export default function TaxaSegmentacaoChart({

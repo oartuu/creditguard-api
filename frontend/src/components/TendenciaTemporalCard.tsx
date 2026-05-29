@@ -84,9 +84,9 @@ interface Props {
 
 export default function TendenciaTemporalCard({ inadimplencia, recuperacao, atraso_medio }: Props) {
   const metricas: MetricaTendencia[] = [
-    { nome: "Inadimplência", tendencia: inadimplencia, cor: "#ef4444", sufixo: "%", melhorCaindo: true },
+    { nome: "Inadimplência", tendencia: inadimplencia, cor: "#e32551", sufixo: "%", melhorCaindo: true },
     { nome: "Recuperação",   tendencia: recuperacao,   cor: "#22c55e", sufixo: "%", melhorCaindo: false },
-    { nome: "Atraso Médio",  tendencia: atraso_medio,  cor: "#f97316", sufixo: " d", melhorCaindo: true },
+    { nome: "Atraso Médio",  tendencia: atraso_medio,  cor: "#f07c19", sufixo: " d", melhorCaindo: true },
   ];
 
   return (

@@ -100,7 +100,7 @@ function GaugeArc({ pct }: { pct: number }) {
   const circumference = Math.PI * radius;
   const offset = circumference - (pct / 100) * circumference;
 
-  const color = pct >= 30 ? "#ef4444" : pct >= 20 ? "#f97316" : "#eab308";
+  const color = pct >= 30 ? "#e32551" : pct >= 20 ? "#f07c19" : "#ffc219";
 
   return (
     <div className="flex flex-col items-center gap-1">

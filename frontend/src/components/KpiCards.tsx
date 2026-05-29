@@ -15,8 +15,8 @@ const BORDER_COLORS: Record<string, string> = {
   orange: "border-l-orange-500",
   green: "border-l-green-500",
   blue: "border-l-blue-500",
-  purple: "border-l-purple-500",
-  cyan: "border-l-cyan-500",
+  purple: "border-l-blue-500",
+  cyan: "border-l-blue-500",
 };
 
 interface CardProps {
