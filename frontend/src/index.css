@@ -71,3 +71,9 @@ body {
 html.dark body {
   background-color: #0d1520;
 }
+
+/* Recharts tooltip — força texto branco no dark mode */
+html.dark .recharts-default-tooltip .recharts-tooltip-label,
+html.dark .recharts-default-tooltip .recharts-tooltip-item {
+  color: #f1f5f9 !important;
+}
