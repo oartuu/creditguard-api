@@ -195,7 +195,7 @@ export default function Sidebar({ activeModule, onModuleChange }: SidebarProps) 
         </span>
       </div>
 
-      <nav className="flex flex-col gap-1 px-3 pb-4">
+      <nav className="flex flex-col gap-1 px-3 pb-4 overflow-y-auto flex-1">
         {MODULES.map(m => (
           <ModuleItem
             key={m.id}

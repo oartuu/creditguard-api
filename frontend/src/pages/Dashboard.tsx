@@ -238,7 +238,7 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-slate-900">
+    <div className="h-screen flex flex-col overflow-hidden bg-white dark:bg-slate-900">
 
       <header className="h-16 flex items-center px-5 border-b border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 flex-shrink-0 transition-colors relative">
         <button
