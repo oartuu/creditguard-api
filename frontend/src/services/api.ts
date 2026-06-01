@@ -7,7 +7,7 @@ import type {
   VisaoDiretoria, VisaoFinanceira, OperacaoCobranca, DashboardFinal,
 } from "../types/api";
 
-const api = axios.create({ baseURL: "http://localhost:5000/analysis" });
+const api = axios.create({ baseURL: "/analysis" });
 
 export const fetchKpis                = () => api.get<Kpis>("/kpis").then(r => r.data);
 export const fetchTendencia           = () => api.get<Tendencia>("/tendencia").then(r => r.data);
