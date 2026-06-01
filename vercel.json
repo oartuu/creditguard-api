@@ -1,14 +1,14 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "outputDirectory": "frontend/dist",
-  "functions": {
-    "api/index.py": {
-      "runtime": "python3.12",
-      "includeFiles": "backend/**"
+  "experimentalServices": {
+    "frontend": {
+      "root": "frontend",
+      "routePrefix": "/",
+      "framework": "vite"
+    },
+    "backend": {
+      "root": "backend",
+      "routePrefix": "/_/backend",
+      "framework": "flask"
     }
-  },
-  "rewrites": [
-    { "source": "/analysis/:path*", "destination": "/api/index" },
-    { "source": "/prepare-data", "destination": "/api/index" }
-  ]
+  }
 }
