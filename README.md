@@ -47,58 +47,43 @@ creditguard-api/
 
 ## Como rodar o projeto
 
-O projeto precisa de dois terminais rodando ao mesmo tempo: um para o backend e outro para o frontend.
+### Pré-requisitos
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- Git
 
 ---
 
-### Terminal 1 — Backend (Flask)
+### 1. Clonar o repositório
 
 ```bash
-# 1. Entrar na pasta do backend
-cd creditguard-api/backend
-
-# 2. Criar o ambiente virtual
-python3 -m venv .venv
-
-# 3. Ativar o ambiente virtual
-source .venv/bin/activate        # Linux / macOS
-# .venv\Scripts\activate         # Windows
-
-# 4. Instalar as dependências
-pip install -r requirements.txt
-
-# 5. Rodar o servidor
-python run.py
+git clone https://github.com/oartuu/creditguard-api.git
+cd creditguard-api
 ```
 
-A API ficará disponível em:
-
-```
-http://localhost:5000
-```
-
-> **Atenção:** antes de usar as rotas analíticas, é necessário gerar o dataset processado. Acesse `http://localhost:5000/prepare-data` uma vez para executar o pipeline.
-
----
-
-### Terminal 2 — Frontend (React + Vite)
+### 2. Subir os containers
 
 ```bash
-# 1. Entrar na pasta do frontend
-cd creditguard-api/frontend
-
-# 2. Instalar as dependências
-npm install
-
-# 3. Rodar o servidor de desenvolvimento
-npm run dev
+docker compose up --build
 ```
 
 O dashboard ficará disponível em:
 
 ```
-http://localhost:5173
+http://localhost
 ```
+
+> **Atenção:** antes de usar as rotas analíticas, é necessário gerar o dataset processado. Acesse `http://localhost/prepare-data` uma vez para executar o pipeline. Se alterar os datasets em `backend/app/data/raw/`, chame essa rota novamente para regenerar o arquivo processado.
+
+---
+
+### Resumo dos endereços
+
+| Serviço | URL |
+|---|---|
+| Dashboard (React) | `http://localhost` |
+| Preparar dados | `http://localhost/prepare-data` |
 
 ---
 
