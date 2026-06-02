@@ -11,10 +11,13 @@ interface Props {
   valorCarteira: number;
 }
 
-export default function ContratosAbertosCard({ data, totalContratos, valorCarteira }: Props) {
+export default function ContratosAbertosCard({
+  data,
+  totalContratos,
+  valorCarteira,
+}: Props) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
-
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200  overflow-hidden transition-colors">
       {/* Hero metric */}
       <div className="px-8 py-7 border-b border-slate-100 dark:border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center gap-6">
         <div className="flex-1">
@@ -35,14 +38,35 @@ export default function ContratosAbertosCard({ data, totalContratos, valorCartei
         </div>
         <div className="grid grid-cols-2 gap-3 flex-shrink-0">
           {[
-            { label: "Valor em aberto", value: fmtBRL(data.valor_total), color: "text-orange-500" },
-            { label: "% da carteira", value: `${data.pct_valor}%`, color: "text-orange-400" },
-            { label: "Total carteira", value: fmtBRL(valorCarteira), color: "text-slate-700 dark:text-slate-200" },
-            { label: "Contratos abertos", value: data.total.toLocaleString("pt-BR"), color: "text-orange-500" },
-          ].map(c => (
-            <div key={c.label} className="bg-slate-50 dark:bg-slate-700/50 rounded-xl px-4 py-3 text-center border border-slate-100 dark:border-slate-700">
+            {
+              label: "Valor em aberto",
+              value: fmtBRL(data.valor_total),
+              color: "text-orange-500",
+            },
+            {
+              label: "% da carteira",
+              value: `${data.pct_valor}%`,
+              color: "text-orange-400",
+            },
+            {
+              label: "Total carteira",
+              value: fmtBRL(valorCarteira),
+              color: "text-slate-700 dark:text-slate-200",
+            },
+            {
+              label: "Contratos abertos",
+              value: data.total.toLocaleString("pt-BR"),
+              color: "text-orange-500",
+            },
+          ].map((c) => (
+            <div
+              key={c.label}
+              className="bg-slate-50 dark:bg-slate-700/50 rounded-xl px-4 py-3 text-center border border-slate-100 dark:border-slate-700"
+            >
               <div className={`text-base font-black ${c.color}`}>{c.value}</div>
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mt-0.5">{c.label}</div>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mt-0.5">
+                {c.label}
+              </div>
             </div>
           ))}
         </div>
@@ -54,8 +78,11 @@ export default function ContratosAbertosCard({ data, totalContratos, valorCartei
           Distribuição por Região
         </p>
         <div className="flex flex-col gap-3">
-          {data.por_regiao.map(r => {
-            const pct = data.valor_total > 0 ? (r.valor_total / data.valor_total) * 100 : 0;
+          {data.por_regiao.map((r) => {
+            const pct =
+              data.valor_total > 0
+                ? (r.valor_total / data.valor_total) * 100
+                : 0;
             return (
               <div key={r.regiao} className="flex items-center gap-3">
                 <div className="w-24 text-[12px] text-slate-600 dark:text-slate-300 text-right flex-shrink-0 font-medium truncate">
@@ -83,7 +110,10 @@ export default function ContratosAbertosCard({ data, totalContratos, valorCartei
         </p>
         <div className="flex flex-col gap-2">
           {data.por_assessoria.map((a, i) => (
-            <div key={a.assessoria} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700/60">
+            <div
+              key={a.assessoria}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700/60"
+            >
               <span className="w-5 text-[11px] font-bold text-slate-400 dark:text-slate-500 text-center flex-shrink-0">
                 {i + 1}
               </span>

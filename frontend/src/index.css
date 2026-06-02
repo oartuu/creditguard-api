@@ -63,6 +63,13 @@
   --color-amber-900: #664700;
 }
 
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   background-color: #f5f7f8;
   transition: background-color 0.2s;
