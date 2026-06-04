@@ -4,6 +4,88 @@
 
 ---
 
+## Diagrama de Fluxo de Uso
+
+```mermaid
+flowchart TD
+    START(["👤 Usuário\nacessa :80"])
+
+    subgraph BOOT["1 — Inicialização"]
+        A["docker compose up"]
+        B["Backend sobe\nGunicorn + Flask"]
+        C["Frontend sobe\nnginx serve SPA"]
+        A --> B & C
+    end
+
+    subgraph ETL["2 — Preparação de Dados (obrigatório 1× por sessão)"]
+        D{{"unified_dataset.csv\nexiste?"}}
+        E["GET /prepare-data\nETL executa ~15s"]
+        F["✅ CSV gerado\n~16MB · ~100k linhas"]
+        D -->|"Não"| E --> F
+        D -->|"Sim"| F
+    end
+
+    subgraph NAV["3 — Navegação no Dashboard"]
+        SIDEBAR["Sidebar\n7 módulos"]
+
+        subgraph M1["Análise Exploratória"]
+            M1E["/kpis · /tendencia\n/distribuicao-atrasos\n/comportamento-pagamentos\n/distribuicao-regional\n/status-cobrancas"]
+        end
+        subgraph M2["Indicadores Estratégicos"]
+            M2E["/taxa-inadimplencia · /taxa-recuperacao\n/atraso-medio\n/risco-regional-estrategico\n/tendencia-temporal"]
+        end
+        subgraph M3["Padrões e Insights"]
+            M3E["/padroes-insights"]
+        end
+        subgraph M4["Visão da Diretoria"]
+            M4E["/visao-diretoria"]
+        end
+        subgraph M5["Visão Financeira"]
+            M5E["/visao-financeira"]
+        end
+        subgraph M6["Operação de Cobrança"]
+            M6E["/operacao-cobranca"]
+        end
+        subgraph M7["Dashboard Final"]
+            M7E["/dashboard-final"]
+        end
+
+        SIDEBAR --> M1 & M2 & M3 & M4 & M5 & M6 & M7
+    end
+
+    subgraph CACHE["4 — Leitura de Dados (por requisição)"]
+        G{{"_cache\npreenchido?"}}
+        H["Lê CSV do disco\nparseia tipos · ~1s"]
+        I["Retorna DataFrame\nda memória · &lt;10ms"]
+        G -->|"Não (1ª chamada)"| H --> I
+        G -->|"Sim"| I
+    end
+
+    RESP["pandas calcula\nretorna JSON"]
+    UI["React re-renderiza\ngráficos e cards"]
+
+    START --> BOOT
+    BOOT --> ETL
+    ETL --> NAV
+    NAV --> CACHE
+    CACHE --> RESP --> UI
+    UI -->|"navega para outro módulo"| NAV
+
+    classDef boot fill:#1e3a5f,stroke:#3b82f6,color:#bfdbfe
+    classDef etl fill:#3b1f00,stroke:#f59e0b,color:#fde68a
+    classDef cache fill:#1e1b4b,stroke:#8b5cf6,color:#ddd6fe
+    classDef io fill:#052e16,stroke:#10b981,color:#a7f3d0
+    classDef ui fill:#1a1a2e,stroke:#ec4899,color:#fbcfe8
+
+    class A,B,C boot
+    class D,E,F etl
+    class G,H,I cache
+    class RESP io
+    class UI ui
+```
+
+---
+
 ## Fluxo Completo de Inicialização
 
 ```
